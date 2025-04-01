@@ -1,4 +1,5 @@
 # filemanager
+
 # 📌 Flask API לניהול משתמשים ותיקיות
 
 ## 📖 מבוא
@@ -10,7 +11,7 @@ API מבוסס Flask לניהול משתמשים, תיקיות וקבצים במ
 
 ### 📦 התקנת הספריות הנדרשות:
 ```bash
-pip install flask flask-sqlalchemy flask-migrate flask-cors
+pip install -r requirements.txt
 ```
 
 ### 🔧 הגדרת מסד הנתונים:
