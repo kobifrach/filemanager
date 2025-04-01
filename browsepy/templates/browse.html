@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% macro draw_widget(f, widget) -%}
+{%- if widget.type == 'button' -%}
+<a href="{{ url_for(widget.endpoint, path=f.urlpath) }}" class="
+        {{- widget.type -}}
+        {%- if widget.text %} text{% endif -%}
+        {%- if widget.css %} {{ widget.css }}{% endif -%}">{{ widget.text or '' }}</a>
+{%- elif widget.type == 'link' -%}
+<a href="{{ url_for(widget.endpoint, path=f.urlpath) }}" {% if widget.css %}class="{{ widget.css }}" {% endif %}>{{
+  widget.text or '' }}</a>
+{%- elif widget.type == 'script' -%}
+<script src="{{ widget.src or url_for(widget.endpoint, filename=widget.filename) }}"></script>
+{%- elif widget.type == 'stylesheet' -%}
+<link rel="stylesheet" type="text/css" href="{{ widget.href or url_for(widget.endpoint, filename=widget.filename) }}" />
+{%- elif widget.type == 'upload' -%}
+<form class="upload autosubmit{% if widget.css %} {{ widget.css }}{% endif %}" method="post"
+  action="{{ widget.action or url_for(widget.endpoint, path=file.urlpath) }}" enctype="multipart/form-data">
+  <label>
+    <h2>{{ widget.text or 'Upload' }}</h2>
+    <input type="file" name="file[]" multiple="" />
+  </label>
+  <input type="submit" />
+</form>
+{%- elif widget.type == 'html' -%}
+{{ widget.html|safe }}
+{%- endif -%}
+{%- endmacro %}
+
+{% macro draw_widgets(f, place) -%}
+{%- for widget in f.widgets -%}
+{%- if widget.place == place -%}
+{{ draw_widget(f, widget) }}
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro %}
+
+{% macro th(text, property, type='text', colspan=1) -%}
+<th{% if colspan> 1 %} colspan="{{ colspan }}"{% endif %}>
+  {% set urlpath = file.urlpath or None %}
+  {% set property_desc = '-{}'.format(property) %}
+  {% set prop = property_desc if sort_property == property else property %}
+  {% set active = ' active' if sort_property in (property, property_desc) else '' %}
+  {% set desc = ' desc' if sort_property == property_desc else '' %}
+  <a href="{{ url_for('sort', path=urlpath, property=prop) }}" class="{{type}} sorting{{active}}{{desc}}">{{ text }}</a>
+  </th>
+  {%- endmacro %}
+
+  {% block styles %}
+  {{ super() }}
+  {{ draw_widgets(file, 'styles') }}
+  {% endblock %}
+
+  {% block head %}
+  {{ super() }}
+  {{ draw_widgets(file, 'head') }}
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='../static/browse.CSS') }}">
+  <!-- <link href="https://fonts.google.com/specimen/Winky+Sans" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet"> -->
+
+  {% endblock %}
+
+  {% block scripts %}
+  {{ super() }}
+  {{ draw_widgets(file, 'scripts') }}
+  {% endblock %}
+
+  {% block header %}
+  <h1>
+    <ol class="path">
+      {% for parent in file.ancestors[::-1] %}
+      <li>
+        <a href="{{ url_for('browse', path=parent.urlpath) }}" {% if parent.is_root %}class="root" {% endif %}>{{
+          parent.name }}</a>
+      </li>
+      {% endfor %}
+      {% if file.name %}
+      <li><span>{{ file.name }}</span></li>
+      {% endif %}
+    </ol>
+  </h1>
+  {% endblock %}
+
+  {% block content %}
+  {% block content_header %}
+  {{ draw_widgets(file, 'header') }}
+  <!-- כפתור העלאה -->
+  <div class="file-upload-container">
+    <h2>בחר קבצים להעלאה</h2>
+    <form class="upload" method="post" action="{{ url_for('upload', path=file.urlpath or '') }}"
+      enctype="multipart/form-data">
+      <input type="file" id="fileInput" name="file[]" multiple class="button" />
+      <div id="fileNames" style="margin-top: 10px; font-size: 16px; color: #555;;"></div>
+      <input type="submit" value="העלה קבצים נבחרים" id="uploadBtn" disabled class="button" />
+    </form>
+  </div>
+
+  <p style="text-align: center;">---------------------------------------------------------------------------------</p>
+
+  <!-- כפתור הוספת תיקייה -->
+  <div class="folder-create-container">
+    <h2>הוסף תיקייה חדשה</h2>
+    <button id="openModalBtn" class="button">יצירת תיקייה חדשה</button>
+  </div>
+
+  <!-- Modal -->
+  <div id="myModal" style="display:none;">
+    <div style="padding: 20px; border: 1px solid #ccc; background: #fff;text-align: center;">
+      <h3>הכנס שם לתיקייה:</h3>
+      <form id="createFolderForm">
+        <input type="text" id="folder_name" name="folder_name" required placeholder="שם התיקייה" />
+        <br>
+        <!-- <label for="folder_type">בחר סוג תיקייה:</label> -->
+        <h3>בחר סוג תיקייה</h3>
+        <br>
+        <select id="folder_type" name="folder_type" required>
+          <option value="" disabled selected>בחר סוג תיקייה</option>
+          <option value="1">סוג 1</option>
+          <option value="2">סוג 2</option>
+          <option value="3">סוג 3</option>
+        </select>
+        <br>
+        <button type="submit" class="button">הוסף תיקייה</button>
+        <button type="button" id="closeModalBtn" class="button">סגור</button>
+      </form>
+    </div>
+  </div>
+  <p style="text-align: center;">---------------------------------------------------------------------------------</p>
+
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const fileNamesDiv = document.getElementById('fileNames');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    fileInput.addEventListener('change', function () {
+      const files = fileInput.files;
+      fileNamesDiv.innerHTML = "";
+      if (files.length > 0) {
+        let fileNames = "<ul>";
+        for (let i = 0; i < files.length; i++) {
+          fileNames += "<li>" + files[i].name + "</li>";
+        }
+        fileNames += "</ul>";
+        fileNamesDiv.innerHTML = fileNames;
+        uploadBtn.disabled = false;
+      } else {
+        fileNamesDiv.innerHTML = "לא נבחרו קבצים.";
+        uploadBtn.disabled = true;
+      }
+    });
+
+    // Modal for creating folder
+    const openModalBtn = document.getElementById('openModalBtn');
+    const modal = document.getElementById('myModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const createFolderForm = document.getElementById('createFolderForm');
+
+    openModalBtn.onclick = function () {
+      modal.style.display = "block";
+    }
+
+    closeModalBtn.onclick = function () {
+      modal.style.display = "none";
+    }
+
+    // createFolderForm.onsubmit = function (event) {
+    //   event.preventDefault(); // Prevent default form submission
+    //   const folderName = document.getElementById('folder_name').value;
+    //   const currentPath = '{{ file.urlpath }}'; // השתמש ב-urlpath של הקובץ הנוכחי
+    //   // alert(file.urlpath)
+
+    //   const fullFolderName = folderName; // רק שם התיקייה
+    //   console.log("Current Path:", currentPath);
+
+
+    //   fetch('{{ url_for("create_folder", path="") }}', { // השאר את path ריק
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/x-www-form-urlencoded',
+    //     },
+    //     body: new URLSearchParams({
+    //       folder_name: fullFolderName,
+    //       current_path: currentPath // הוסף את הנתיב הנוכחי כאן
+    //     })
+    //   })
+    //     .then(response => {
+    //       if (response.ok) {
+    //         alert("ok")
+    //         window.location.reload(); // Refresh the page on success
+    //       } else {
+    //         alert("שגיאה ביצירת התיקייה");
+    //       }
+    //     })
+    //     .catch(error => {
+    //       console.error('Error:', error);
+    //       alert("שגיאה בבקשה");
+    //     });
+    // }
+    createFolderForm.onsubmit = function (event) {
+      event.preventDefault(); // מניעת שליחה רגילה של הטופס
+      const folderName = document.getElementById('folder_name').value;
+      const folderType = document.getElementById('folder_type').value; // קבלת סוג תיקייה
+      const currentPath = '{{ file.urlpath }}'; // נתיב הקובץ הנוכחי שנמצא בו המשתמש
+
+      // יצירת שם תיקייה חדש שכולל גם את סוג התיקייה
+      const fullFolderName = `${folderName}  ${folderType}`;
+      console.log("Current Path:", currentPath);
+      console.log("Full Folder Name:", fullFolderName);
+
+      fetch('{{ url_for("create_folder", path="") }}', { // השאר את path ריק
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          folder_name: fullFolderName,  // שליחה של שם התיקייה המלא (שם + סוג)
+          current_path: currentPath    // הוסף את הנתיב הנוכחי כאן
+        })
+      })
+        .then(response => {
+          if (response.ok) {
+            alert("תיקייה נוצרה בהצלחה");
+            window.location.reload(); // רענון הדף על הצלחה
+          } else {
+            alert("שגיאה ביצירת התיקייה");
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert("שגיאה בבקשה");
+        });
+    }
+
+
+  </script>
+
+
+  {% endblock %}
+
+  {% block content_table %}
+  {% if file.is_empty %}
+  <p>No files in directory</p>
+  {% else %}
+  <table class="browser">
+    <thead>
+      <tr>
+        {{ th('Name', 'text', 'text', 3) }}
+        {{ th('Mimetype', 'type') }}
+        {{ th('Modified', 'modified', 'numeric') }}
+        {{ th('Size', 'size', 'numeric') }}
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <!-- <tbody>
+      {% for f in file.listdir(sortkey=sort_fnc, reverse=sort_reverse) %}
+      <tr>
+        {% if f.link %}
+        <td class="icon {{ f.link.icon }}"></td>
+        <td>{{ draw_widget(f, f.link) }}</td>
+        {% else %}
+        <td></td>
+        <td></td>
+        {% endif %}
+        <td>{{ draw_widgets(f, 'entry-actions') }}</td>
+        <td>{{ f.type or '' }}</td>
+        <td>{{ f.modified or '' }}</td>
+        <td>{{ f.size or '' }}</td>
+        <td>
+          <form action="{{ url_for('remove', path=f.urlpath) }}" method="post" style="display:inline;">
+            <input type="submit" value="מחק" onclick="return confirm('האם אתה בטוח שברצונך למחוק את הקובץ?');" />
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody> -->
+    <tbody>
+      {% for f in file.listdir(sortkey=sort_fnc, reverse=sort_reverse) %}
+      <tr>
+        <td class="icon {{ f.link.icon }}"></td>
+
+        <!-- קישור לתצוגה מקדימה -->
+        <td>
+          {% if f.is_directory %}
+          <a href="{{ url_for('browse', path=f.urlpath) }}">{{ f.name }}</a>
+          {% else %}
+          <a href="{{ url_for('preview_file', path=f.urlpath) }}" target="_blank" rel="noopener noreferrer">{{ f.name
+            }}</a>
+          {% endif %}
+        </td>
+
+        <td>{{ draw_widgets(f, 'entry-actions') }}</td>
+        <td>{{ f.type or '' }}</td>
+        <td>{{ f.modified or '' }}</td>
+        <td>{{ f.size or '' }}</td>
+
+        <!-- כפתור הורדה נפרד -->
+        <!-- <td>
+          {% if not f.is_directory %}
+          <a href="{{ url_for('download_file', path=f.urlpath) }}" class="button">הורד</a>
+          {% endif %}
+        </td> -->
+
+        <!-- כפתור מחיקה -->
+        <td>
+          <form action="{{ url_for('remove', path=f.urlpath) }}" method="post" style="display:inline;">
+            <input type="submit" value="מחק" onclick="return confirm('האם אתה בטוח שברצונך למחוק את הקובץ?');" />
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+
+  </table>
+  {% endif %}
+  {% endblock %}
+
+  {% block content_footer %}
+  {{ draw_widgets(file, 'footer') }}
+  {% endblock %}
+  {% endblock %}

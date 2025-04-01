@@ -1,0 +1,56 @@
+USE ManageDB;
+
+-- יצירת טבלת User_Type
+CREATE TABLE User_Type (
+    id INT IDENTITY(1,1) PRIMARY KEY,  -- שינוי מ-AUTO_INCREMENT ל-IDENTITY
+    name VARCHAR(100) NOT NULL,
+    can_create_admin BIT DEFAULT 0,
+    can_create_technician BIT DEFAULT 0,
+    can_create_user BIT DEFAULT 0,
+    can_create_customer BIT DEFAULT 0,
+    can_create_folder BIT DEFAULT 0,
+    can_upload_file BIT DEFAULT 0,
+    can_delete_customer BIT DEFAULT 0
+);
+
+-- יצירת טבלת Customers
+CREATE TABLE Customers (
+    id INT IDENTITY(1,1) PRIMARY KEY,  -- שינוי מ-AUTO_INCREMENT ל-IDENTITY
+    id_number VARCHAR(9) NOT NULL UNIQUE,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(15) NOT NULL
+);
+
+-- יצירת טבלת Folders
+CREATE TABLE Folders (
+    id INT IDENTITY(1,1) PRIMARY KEY,  -- שינוי מ-AUTO_INCREMENT ל-IDENTITY
+    name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
+-- יצירת טבלת Files
+CREATE TABLE Files (
+    id INT IDENTITY(1,1) PRIMARY KEY,  -- שינוי מ-AUTO_INCREMENT ל-IDENTITY
+    name VARCHAR(100) NOT NULL,
+    file_type VARCHAR(50)
+);
+
+-- יצירת טבלת Customers_Folders (קשר בין לקוחות לתיקיות)
+CREATE TABLE Customers_Folders (
+    id INT IDENTITY(1,1) PRIMARY KEY,  -- שינוי מ-AUTO_INCREMENT ל-IDENTITY
+    customer_id INT NOT NULL,
+    folder_id INT NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES Customers(id),
+    FOREIGN KEY (folder_id) REFERENCES Folders(id)
+);
+
+-- יצירת טבלת Folders_Files (קשר בין תיקיות לקבצים)
+CREATE TABLE Folders_Files (
+    id INT IDENTITY(1,1) PRIMARY KEY,  -- שינוי מ-AUTO_INCREMENT ל-IDENTITY
+    folder_id INT NOT NULL,
+    file_id INT NOT NULL,
+    FOREIGN KEY (folder_id) REFERENCES Folders(id),
+    FOREIGN KEY (file_id) REFERENCES Files(id)
+);
