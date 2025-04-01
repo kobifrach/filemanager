@@ -10,12 +10,45 @@ API מבוסס Flask לניהול משתמשים, תיקיות וקבצים במ
 
 ### 📦 התקנת הספריות הנדרשות:
 ```bash
-pip install flask sqlite3
+pip install flask flask-sqlalchemy flask-migrate flask-cors
+```
+
+### 🔧 הגדרת מסד הנתונים:
+```bash
+flask db init
+flask db migrate -m "Initial migration."
+flask db upgrade
 ```
 
 ### 🚀 הפעלת השרת:
 ```bash
 flask run
+```
+
+---
+
+## 🛠️ מבנה מסד הנתונים (SQL Server)
+
+### 🔹 טבלת משתמשים (`users`)
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    first_name NVARCHAR(50),
+    last_name NVARCHAR(50),
+    email NVARCHAR(100) UNIQUE,
+    phone NVARCHAR(20),
+    password NVARCHAR(255),
+    role NVARCHAR(20)
+);
+```
+
+### 🔹 טבלת תיקיות (`folders`)
+```sql
+CREATE TABLE folders (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    folder_name NVARCHAR(100),
+    folder_description NVARCHAR(255)
+);
 ```
 
 ---
@@ -127,3 +160,4 @@ DELETE /user/<user_id>
 
 ## 🔚 סיכום
 API פשוט לניהול משתמשים, תיקיות וקבצים. ניתן להרחיב ולהוסיף יכולות נוספות לפי הצורך.
+
