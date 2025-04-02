@@ -17,3 +17,14 @@ def get_folder_files():
     folder_files = [{"id": row[0], "folder_id": row[1], "file_id": row[2]} for row in rows]
     return jsonify(folder_files), 200
 
+
+#העברת קבצים בין תיקיות
+@foldersFiles_bp.route('/folder_files', methods=['PUT'])
+def move_file(file_id, new_folder_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE Folders_Files SET folder_id = ? WHERE file_id = ?
+    ''', (new_folder_id, file_id))
+    conn.commit()
+    conn.close()

@@ -1,5 +1,6 @@
 # database.py
 import pyodbc
+from datetime import datetime
 
 #פה מתחברים לDB
 
@@ -15,3 +16,26 @@ def get_db_connection():
                       f'Trusted_Connection=yes;')
 
     return conn
+def log_action(action, performer):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("INSERT INTO history (date, action, performer) VALUES (?, ?, ?)", 
+                   (datetime.now(), action, performer))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+# דוגמה לשימוש במידלוור
+def execute_db_operation(query, params, performer):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(query, params)
+    conn.commit()
+    
+    # רישום ההיסטוריה (אם יש צורך)
+    log_action(query, performer)
+    
+    cursor.close()
+    conn.close()

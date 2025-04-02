@@ -2,7 +2,7 @@
 
 
 from flask import Blueprint, request, jsonify
-from ..database import get_db_connection
+from ..database import get_db_connection, execute_db_operation
 import os
 
 files_bp = Blueprint('files', __name__)  # יצירת Blueprint
@@ -19,7 +19,7 @@ def create_file():
     if not file_name or not file_url:
         return jsonify({"message": "File name and file URL are required"}), 400
     
-    # בדיקה אם יש סיומת בקובץ (למשל .pdf, .docx)
+    # בדיקה אם יש סיומת בקובץ 
     file_type = data.get('file_type')  # אם לא סופק סוג קובץ, נבדוק את שם הקובץ
     
     if not file_type:  # אם לא נשלח סוג קובץ
@@ -42,6 +42,40 @@ def create_file():
     cursor.close()
     
     return jsonify({"message": "File created successfully"}), 201
+# @files_bp.route('/file', methods=['POST'])
+# def create_file():
+#     data = request.get_json()
+
+#     file_name = data.get('name')
+#     file_url = data.get('file_url')
+    
+#     # אם אחד מהשדות חסר, מחזיר שגיאה
+#     if not file_name or not file_url:
+#         return jsonify({"message": "File name and file URL are required"}), 400
+    
+#     # בדיקה אם יש סיומת בקובץ 
+#     file_type = data.get('file_type')  # אם לא סופק סוג קובץ, נבדוק את שם הקובץ
+    
+#     if not file_type:  # אם לא נשלח סוג קובץ
+#         # בדוק אם יש סיומת בקובץ
+#         _, file_extension = os.path.splitext(file_name)
+#         if file_extension:  # אם יש סיומת
+#             file_type = file_extension.lstrip('.')  # מסיר את ה-'.' מהסיומת
+#         else:
+#             file_type = 'docx'  # ברירת מחדל אם אין סיומת
+    
+#     performer = "username_or_id"  # ניתן להחליף את זה במידע על המשתמש שמבצע את הפעולה
+
+#     insert_query = '''
+#         INSERT INTO Files (name, file_type, File_URL)
+#         VALUES (?, ?, ?)
+#     '''
+    
+#     execute_db_operation(insert_query, (file_name, file_type, file_url), performer)
+    
+#     return jsonify({"message": "File created successfully"}), 201
+
+
 
 
 #קבלת כל הקבצים
