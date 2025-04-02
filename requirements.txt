@@ -2,11 +2,11 @@ flask
 unicategories
 python-docx
 
-# for python < 3.6
-scandir
+# # for python < 3.6
+# scandir
 
-# for python < 3.3
-backports.shutil_get_terminal_size
+# # for python < 3.3
+# backports.shutil_get_terminal_size
 
 # for building
 setuptools
@@ -18,3 +18,5 @@ flake8
 coverage
 pyaml
 sphinx
+
+browsepy

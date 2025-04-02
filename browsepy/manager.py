@@ -5,7 +5,7 @@
 # import sys
 # import argparse
 # import warnings
-# import collections
+# import collections.abc
 
 # from flask import current_app
 # from werkzeug.utils import cached_property
@@ -23,11 +23,11 @@
 #     :param fields: iterable with field names
 #     :param defaults: iterable or mapping with field defaults
 #     :returns: defaultdict with given fields and given defaults
-#     :rtype: collections.defaultdict
+#     :rtype: collections.abc.defaultdict
 #     '''
-#     nt = collections.namedtuple(name, fields)
+#     nt = collections.abc.namedtuple(name, fields)
 #     nt.__new__.__defaults__ = (None,) * len(nt._fields)
-#     if isinstance(defaults, collections.Mapping):
+#     if isinstance(defaults, collections.abc.Mapping):
 #         nt.__new__.__defaults__ = tuple(nt(**defaults))
 #     elif defaults:
 #         nt.__new__.__defaults__ = tuple(nt(*defaults))
@@ -604,7 +604,7 @@
 #     @cached_property
 #     @deprecated('Deprecated attribute action_class')
 #     def action_class(self):
-#         return collections.namedtuple(
+#         return collections.abc.namedtuple(
 #             'MimetypeAction',
 #             ('endpoint', 'widget')
 #             )
@@ -722,6 +722,7 @@ import sys
 import argparse
 import warnings
 import collections.abc
+from collections.abc import Mapping
 from collections import namedtuple
 
 from flask import current_app
