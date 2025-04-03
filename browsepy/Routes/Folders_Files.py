@@ -20,11 +20,40 @@ def get_folder_files():
 
 #העברת קבצים בין תיקיות
 @foldersFiles_bp.route('/folder_files', methods=['PUT'])
-def move_file(file_id, new_folder_id):
+def move_file():
+    data = request.get_json()
     conn = get_db_connection()
     cursor = conn.cursor()
+    file_id = data.get('file_id')
+    new_folder_id = data.get('new_folder_id')
+
+    # בדוק אם הקובץ קיים
     cursor.execute('''
-        UPDATE Folders_Files SET folder_id = ? WHERE file_id = ?
+        SELECT COUNT(*) FROM Folders_Files WHERE id = ?
+    ''', (file_id,))
+    
+    file_exists = cursor.fetchone()[0]
+
+    if file_exists < 1:
+        return jsonify({'message': 'No file found'}), 400
+
+    # בדוק אם התיקיה עם ה-ID המבוקש קיימת
+    cursor.execute('''
+        SELECT COUNT(*) FROM Folders WHERE id = ?
+    ''', (new_folder_id,))
+    
+    folder_exists = cursor.fetchone()[0]
+
+    if folder_exists < 1:
+        return jsonify({'message': 'No folder found with the specified ID'}), 400
+
+    # אם הקובץ והתיקיה קיימים, בצע את העדכון
+    cursor.execute('''
+        UPDATE Folders_Files SET folder_id = ? WHERE id = ?
     ''', (new_folder_id, file_id))
+    
     conn.commit()
     conn.close()
+    return jsonify({'message': 'File moved successfully'}), 200
+
+
