@@ -1,10 +1,10 @@
-
+#נבדק, עובד מושלם כולל מקרי קצה
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection
 
 customers_bp = Blueprint('customers', __name__)  # יצירת Blueprint
 
-
+#יצירת לקוח
 @customers_bp.route('/customer', methods=['POST'])
 def create_customer():
     data = request.get_json()
@@ -388,4 +388,29 @@ def add_folder_to_customer(customer_id):
         cursor.close()
 
 
+#מחיקת קובץ מטבלת קבצי לקוחות
+@customers_bp.route('/customer/file/<int:file_id>', methods=['DELETE'])
+def delete_file(file_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
+    try:
+        # בדיקה אם הקובץ קיים בטבלת Customers_Files
+        cursor.execute('SELECT COUNT(*) FROM Customers_Files WHERE original_file_id = ?', (file_id,))
+        file_exists = cursor.fetchone()[0]
+        
+        if file_exists == 0:
+            return jsonify({"message": f"Error: File with ID {file_id} does not exist."}), 400
+
+        # מחיקת הקובץ מטבלת Customers_Files
+        cursor.execute('DELETE FROM Customers_Files WHERE original_file_id = ?', (file_id,))
+
+        conn.commit()
+        return jsonify({"message": f"File with ID {file_id} deleted successfully."}), 200
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
