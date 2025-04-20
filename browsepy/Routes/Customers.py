@@ -92,68 +92,6 @@ def create_customer():
 
 
 
-
-
-#הצגת כל התיקיות של לקוח מסוים
-@customers_bp.route('/customer/<int:customer_id>/folders', methods=['GET'])
-def get_customer_folders(customer_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute('''
-            SELECT f.id, f.name
-            FROM Folders f
-            JOIN Customers_Folders cf ON f.id = cf.folder_id
-            WHERE cf.customer_id = ?
-        ''', (customer_id,))
-
-        folders = cursor.fetchall()
-        folder_list = [{"id": folder[0], "name": folder[1]} for folder in folders]
-        return jsonify({"folders": folder_list}), 200
-
-    except Exception as e:
-        return jsonify({"message": f"Error: {str(e)}"}), 500
-
-    finally:
-        cursor.close()
-
-
-
-
-
-#הצגת כל הקבצים של לקוח
-@customers_bp.route('/customer/<int:customer_id>/files', methods=['GET'])
-def get_customer_files(customer_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # שליפת הקבצים שמשויכים ללקוח
-        cursor.execute('''
-            SELECT f.id AS file_id, f.name, f.file_type, f.File_URL
-            FROM Customers_Folders cf
-            JOIN Folders_Files ff ON cf.folder_id = ff.folder_id
-            JOIN Files f ON ff.file_id = f.id
-            WHERE cf.customer_id = ?
-        ''', (customer_id,))
-
-        files = cursor.fetchall()
-
-        # אם יש קבצים
-        if files:
-            return jsonify({"files": [{"file_id": file[0], "name": file[1], "file_type": file[2], "File_URL": file[3]} for file in files]}), 200
-        else:
-            return jsonify({"message": "No files found for this customer."}), 201
-
-    except Exception as e:
-        print(f"❌ Exception occurred: {str(e)}")
-        return jsonify({"message": f"Error: {str(e)}"}), 500
-
-    finally:
-        cursor.close()
-
-
 #מחיקת לקוח
 @customers_bp.route('/customer/<int:customer_id>', methods=['DELETE'])
 def delete_customer(customer_id):
@@ -222,7 +160,7 @@ def get_all_customers():
             }), 200
         else:
             print("no items")
-            return jsonify({"message": "No customers found."}), 201
+            return jsonify({"message": "No customers found."}), 204
 
 
 
@@ -274,7 +212,6 @@ def get_customer_by_id(customer_id):
 
 
 
-
 # עדכון פרטי לקוח
 @customers_bp.route('/customer/<int:customer_id>', methods=['PUT'])
 def update_customer(customer_id):
@@ -318,99 +255,3 @@ def update_customer(customer_id):
         cursor.close()
 
 
-
-
-#הוספת תיקייה ללקוח+הוספת הקבצים
-@customers_bp.route('/customer/<int:customer_id>/folder', methods=['POST'])
-def add_folder_to_customer(customer_id):
-    data = request.get_json()
-    folder_id = data.get('folder_id')
-
-    if not folder_id:
-        return jsonify({"message": "Error: 'folder_id' is required"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # בדיקה אם התיקייה קיימת
-        cursor.execute('SELECT id, name FROM Folders WHERE id = ?', (folder_id,))
-        folder = cursor.fetchone()
-        if not folder:
-            return jsonify({"message": f"Error: Folder with ID {folder_id} does not exist"}), 400
-
-        # קבלת מספר הזהות של הלקוח
-        cursor.execute('SELECT id_number FROM Customers WHERE id = ?', (customer_id,))
-        customer = cursor.fetchone()
-        if not customer:
-            return jsonify({"message": f"Error: Customer with ID {customer_id} does not exist"}), 400
-        
-        id_number = customer[0]  # מספר הזהות של הלקוח
-        folder_name = f"{folder[1]}_{id_number}"  # שם התיקייה החדשה
-
-        # הוספת קשר בין הלקוח לתיקייה
-        cursor.execute('''
-            INSERT INTO Customers_Folders (customer_id, folder_id, Folder_Name) 
-            OUTPUT INSERTED.id
-            VALUES (?, ?, ?)
-        ''', (customer_id, folder_id, folder_name))
-        customer_folder_id = cursor.fetchone()[0]  # קבלת ה-ID החדש של התיקייה שנוצרה
-
-        # קבלת כל הקבצים הקשורים לתיקייה הזו
-        cursor.execute('''
-            SELECT id, File_URL, file_type, name FROM Files 
-            WHERE id IN (SELECT file_id FROM Folders_Files WHERE folder_id = ?)
-        ''', (folder_id,))
-        files = cursor.fetchall()
-
-        # הוספת קשרים בין הלקוח לקבצים
-        for file in files:
-            file_id, file_path, file_type, original_name = file
-            
-            # יצירת שם חדש לקובץ
-            file_extension = original_name.split('.')[-1]  # סיומת הקובץ
-            file_base_name = '.'.join(original_name.split('.')[:-1])  # שם הקובץ בלי הסיומת
-            new_file_name = f"{file_base_name}_{id_number}.{file_extension}"  # שם חדש עם מספר זהות
-
-            cursor.execute('''
-                INSERT INTO Customers_Files (folder_id, original_file_id, file_path, file_type, created_at, customer_file_name)
-                VALUES (?, ?, ?, ?, GETDATE(), ?)
-            ''', (customer_folder_id, file_id, file_path, file_type, new_file_name))
-
-        conn.commit()
-        return jsonify({"message": "Folder and files added to customer successfully!"}), 201
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"message": f"Error: {str(e)}"}), 500
-
-    finally:
-        cursor.close()
-
-
-#מחיקת קובץ מטבלת קבצי לקוחות
-@customers_bp.route('/customer/file/<int:file_id>', methods=['DELETE'])
-def delete_file(file_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # בדיקה אם הקובץ קיים בטבלת Customers_Files
-        cursor.execute('SELECT COUNT(*) FROM Customers_Files WHERE original_file_id = ?', (file_id,))
-        file_exists = cursor.fetchone()[0]
-        
-        if file_exists == 0:
-            return jsonify({"message": f"Error: File with ID {file_id} does not exist."}), 400
-
-        # מחיקת הקובץ מטבלת Customers_Files
-        cursor.execute('DELETE FROM Customers_Files WHERE original_file_id = ?', (file_id,))
-
-        conn.commit()
-        return jsonify({"message": f"File with ID {file_id} deleted successfully."}), 200
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"message": f"Error: {str(e)}"}), 500
-
-    finally:
-        cursor.close()

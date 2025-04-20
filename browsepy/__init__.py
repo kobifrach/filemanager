@@ -29,10 +29,11 @@ from .Routes.Customers import customers_bp
 from .Routes.Files import files_bp
 from .Routes.Folders_Files import foldersFiles_bp
 from .Routes.Folders import folders_bp
-from .Routes.Customers_Folders import customersFolders_bp
+from .Routes.Customers_Folders import customer_folders_bp
 from .Routes.User_Type import userTypes_bp
 from .Routes.Users import users_bp
 from .Routes.additional_functions import addFunctions_bp
+from .Routes.Customers_Files import customer_files_bp
 
 
 
@@ -55,10 +56,11 @@ app.register_blueprint(customers_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(foldersFiles_bp)
 app.register_blueprint(folders_bp)
-app.register_blueprint(customersFolders_bp)
+app.register_blueprint(customer_folders_bp)
 app.register_blueprint(userTypes_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(addFunctions_bp)
+app.register_blueprint(customer_files_bp)
 
 app.config.update(
     # directory_base=compat.getcwd(),

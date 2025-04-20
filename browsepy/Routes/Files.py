@@ -93,7 +93,7 @@ def get_file_by_id(file_id):
         return jsonify({"message": "An error occurred while fetching the file", "error": str(e)}), 500
 
 
-# עדכון קובץ
+# עדכון קובץ - פרטים ולא תוכן
 @files_bp.route('/file/<int:id>', methods=['PUT'])
 def update_file(id):
     data = request.get_json()

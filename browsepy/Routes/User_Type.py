@@ -6,7 +6,7 @@ from ..database import get_db_connection
 userTypes_bp = Blueprint('userTypes', __name__)  # יצירת Blueprint
 
 
-# יצירת משתמש חדש
+# יצירת סוג משתמש חדש
 @userTypes_bp.route('/user_type', methods=['POST'])
 def create_user_type():
     data = request.get_json()
