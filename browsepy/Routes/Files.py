@@ -1,13 +1,10 @@
-#נבדק, עובד מושלם
-
-
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection, execute_db_operation
 import os
 
-files_bp = Blueprint('files', __name__)  # יצירת Blueprint
+files_bp = Blueprint('files', __name__)  # Blueprint for file management
 
-# יצירת קובץ
+# Create a new file entry
 @files_bp.route('/file', methods=['POST'])
 def create_file():
     data = request.get_json()
@@ -15,22 +12,20 @@ def create_file():
     file_name = data.get('name')
     file_url = data.get('file_url')
     
-    # אם אחד מהשדות חסר, מחזיר שגיאה
+    # Validate required fields
     if not file_name or not file_url:
-        return jsonify({"message": "File name and file URL are required"}), 400
+        return jsonify({"message": "חובה לספק שם קובץ וכתובת קובץ"}), 400
     
-    # בדיקה אם יש סיומת בקובץ 
-    file_type = data.get('file_type')  # אם לא סופק סוג קובץ, נבדוק את שם הקובץ
-    
-    if not file_type:  # אם לא נשלח סוג קובץ
-        # בדוק אם יש סיומת בקובץ
+    # Determine file type (extension)
+    file_type = data.get('file_type')
+    if not file_type:
         _, file_extension = os.path.splitext(file_name)
-        if file_extension:  # אם יש סיומת
-            file_type = file_extension.lstrip('.')  # מסיר את ה-'.' מהסיומת
+        if file_extension:
+            file_type = file_extension.lstrip('.')
         else:
-            file_type = 'docx'  # ברירת מחדל אם אין סיומת
-    
-    # כאן מניחים שהנתיב לא כולל את שם הקובץ, כלומר file_url הוא הנתיב עד הקובץ
+            file_type = 'docx'  # Default type if none provided
+
+    # Insert the file record into the database
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -41,11 +36,10 @@ def create_file():
     conn.commit()
     cursor.close()
     
-    return jsonify({"message": "File created successfully"}), 201
+    return jsonify({"message": "הקובץ נוצר בהצלחה"}), 201
 
 
-
-#קבלת כל הקבצים
+# Retrieve all files
 @files_bp.route('/files', methods=['GET'])
 def get_files():
     try:
@@ -55,19 +49,17 @@ def get_files():
         rows = cursor.fetchall()
         cursor.close()
 
-        # אם אין קבצים, מחזירים מערך ריק
         if not rows:
-            return jsonify([]), 200  # מערך ריק עם סטטוס 200 (הצלחה)
+            return jsonify([]), 200  # Return empty list if no files exist
 
-        # הצגת כל הקבצים עם כל השדות המעודכנים
+        # Format and return all file entries
         files = [{"id": row[0], "name": row[1], "file_type": row[2], "file_url": row[3]} for row in rows]
         return jsonify(files), 200
     except Exception as e:
-        return jsonify({"message": "An error occurred while fetching files", "error": str(e)}), 500
+        return jsonify({"message": "אירעה שגיאה בעת שליפת הקבצים", "error": str(e)}), 500
 
 
-
-#קבלת קובץ ספציפי לפי ID
+# Retrieve a specific file by its ID
 @files_bp.route('/file/<int:file_id>', methods=['GET'])
 def get_file_by_id(file_id):
     try:
@@ -77,45 +69,41 @@ def get_file_by_id(file_id):
         row = cursor.fetchone()
         cursor.close()
 
-        # אם לא נמצא קובץ עם ה-ID הזה, מחזירים הודעת שגיאה מתאימה
         if row is None:
-            return jsonify({"message": f"File with ID {file_id} not found"}), 404
+            return jsonify({"message": f"קובץ עם מזהה {file_id} לא נמצא"}), 404
 
-        # הצגת פרטי הקובץ
         file = {
             "id": row[0],
             "name": row[1],
             "file_type": row[2],
-            "file_url": row[3]  # מחזירים גם את ה-URL של הקובץ
+            "file_url": row[3]
         }
         return jsonify(file), 200
     except Exception as e:
-        return jsonify({"message": "An error occurred while fetching the file", "error": str(e)}), 500
+        return jsonify({"message": "אירעה שגיאה בעת שליפת הקובץ", "error": str(e)}), 500
 
 
-# עדכון קובץ - פרטים ולא תוכן
+# Update an existing file's metadata (not the content itself)
 @files_bp.route('/file/<int:id>', methods=['PUT'])
 def update_file(id):
     data = request.get_json()
     
-    # וולידציה של השדות
     name = data.get('name')
     file_type = data.get('file_type')
     file_url = data.get('file_url')
 
-    # אם אחד מהשדות חסר, מחזירים שגיאה
+    # Validate input fields
     if not name or not file_url:
-        return jsonify({"message": "File name and file URL are required"}), 400
-    
-    # אם לא נשלח סוג קובץ, נבדוק את שם הקובץ
+        return jsonify({"message": "חובה לספק שם קובץ וכתובת קובץ"}), 400
+
     if not file_type:
         _, file_extension = os.path.splitext(name)
         if file_extension:
             file_type = file_extension.lstrip('.')
         else:
-            file_type = 'docx'  # ברירת מחדל אם אין סיומת
+            file_type = 'docx'
 
-    # עדכון הקובץ בבסיס הנתונים
+    # Update file record in the database
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -126,10 +114,10 @@ def update_file(id):
     conn.commit()
     cursor.close()
 
-    return jsonify({"message": "File updated successfully"}), 200
+    return jsonify({"message": "הקובץ עודכן בהצלחה"}), 200
 
 
-#מחיקת קובץ
+# Delete a file by its ID
 @files_bp.route('/file/<int:id>', methods=['DELETE'])
 def delete_file(id):
     conn = get_db_connection()
@@ -137,4 +125,4 @@ def delete_file(id):
     cursor.execute('DELETE FROM Files WHERE id = ?', (id,))
     conn.commit()
     cursor.close()
-    return jsonify({"message": "File deleted successfully"}), 200
+    return jsonify({"message": "הקובץ נמחק בהצלחה"}), 200
