@@ -32,8 +32,9 @@ from .Routes.Folders import folders_bp
 from .Routes.Customers_Folders import customer_folders_bp
 from .Routes.User_Type import userTypes_bp
 from .Routes.Users import users_bp
-from .Routes.additional_functions import addFunctions_bp
+#from .Routes.additional_functions import addFunctions_bp
 from .Routes.Customers_Files import customer_files_bp
+from .Routes.documents import documents_bp
 
 
 
@@ -59,7 +60,7 @@ app.register_blueprint(folders_bp)
 app.register_blueprint(customer_folders_bp)
 app.register_blueprint(userTypes_bp)
 app.register_blueprint(users_bp)
-app.register_blueprint(addFunctions_bp)
+app.register_blueprint(documents_bp)
 app.register_blueprint(customer_files_bp)
 
 app.config.update(

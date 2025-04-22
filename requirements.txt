@@ -20,3 +20,5 @@ pyaml
 sphinx
 
 browsepy
+python-docx pymongo
+pywin32
