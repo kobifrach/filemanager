@@ -11,6 +11,7 @@ import win32com.client
 from docx.enum.text import WD_COLOR_INDEX
 from ..database import get_db_connection
 from datetime import datetime
+from docx.enum.text import WD_COLOR_INDEX
 
 # ---------- General Definitions ----------
 documents_bp = Blueprint('documents', __name__)
@@ -30,6 +31,7 @@ VARIABLE_REGEX = r"\{\{(.*?)\}\}"
 def validate_value_by_type(value, sql_type, field_name=None, errors=None):    
 
 
+    #check if field is ID and if value is not number, return "_____"
     if 'id' in (field_name or '').lower():
         print("ID field found")
         if not str(value).isdigit():
@@ -37,10 +39,10 @@ def validate_value_by_type(value, sql_type, field_name=None, errors=None):
             msg = f"שגיאה בשדה '{field_name or 'שדה'}': ערך '{value}' לא מספרי (שדה ID חייב להכיל רק ספרות)"
             if errors is not None:
                 errors.append(msg)
-            # אם הערך לא מספרי, תן ערך ריק
+            # if id not number, return _____ string
             return "_____"
         
-
+    #check if field is match to its type in SQL
     type_match = re.match(r"([a-zA-Z]+)\(?(\d*)\)?", sql_type.strip())
     if not type_match:
         return value
@@ -57,7 +59,6 @@ def validate_value_by_type(value, sql_type, field_name=None, errors=None):
             return str_value
 
         elif base_type in ['int', 'bigint', 'smallint']:
-            print("int value")
             return int(value)
 
         elif base_type in ['float', 'real', 'decimal', 'numeric']:
@@ -95,6 +96,98 @@ def convert_doc_to_docx(input_path):
         print("שגיאה בהמרה ל-docx:", e)
         return None
 
+# def process_paragraphs(paragraphs, cursor, variables_not_found, sql_id, values):
+#     for para in paragraphs:
+#         matches = list(re.finditer(VARIABLE_REGEX, para.text))
+#         if not matches:
+#             continue
+
+#         original_text = para.text
+#         para.clear()
+#         last_end = 0
+
+#         for match in matches:
+#             start, end = match.span()
+#             var_text = match.group(1)
+#             parts = var_text.split(',')
+
+#             before = original_text[last_end:start]
+#             if before:
+#                 run = para.add_run(before)
+#                 run.font.name = 'Arial'
+#                 run.font.size = Pt(12)
+
+#             if len(parts) < 5:
+#                 run = para.add_run(match.group(0))
+#                 run.font.name = 'Arial'
+#                 run.font.size = Pt(12)
+#                 last_end = end
+#                 continue
+
+#             var_name, var_type, var_len, var_required, var_description = [p.strip() for p in parts]
+
+#             # Check if field exists in SQL, if not insert it
+#             cursor.execute("SELECT COUNT(*) FROM Fields WHERE name = ?", (var_name,))
+#             if cursor.fetchone()[0] == 0:
+#                 cursor.execute("INSERT INTO Fields (name, type, length, required) VALUES (?, ?, ?, ?)",
+#                                (var_name, var_type, int(var_len), int(var_required == '*')))
+#                 cursor.connection.commit()
+
+#             # Fetch value from MongoDB
+#             value = values.get(var_name)
+#             field_errors = []
+
+#             cursor.execute("SELECT required FROM Fields WHERE name = ?", (var_name,))
+#             row = cursor.fetchone()
+#             field_is_required = row[0] == 1 if row else False
+
+#             if value is not None:
+#                 # ולידציה לפי סוג הנתון
+#                 sql_type = f"{var_type}({var_len})" if var_len else var_type
+#                 validated_value = validate_value_by_type(value, sql_type, field_name=var_name, errors=field_errors)
+                
+
+#                 if validated_value is not None and validated_value != "_____":
+#                     run = para.add_run(str(validated_value))
+#                     run.font.name = 'Arial'
+#                     run.font.size = Pt(12)
+#                 else:
+#                     variables_not_found.append(var_name)
+#                     if field_is_required:
+#                         run = para.add_run("_____")
+#                         run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+#                     else:
+#                         run = para.add_run("")
+#                     run.font.name = 'Arial'
+#                     run.font.size = Pt(12)
+#             else:
+#                 variables_not_found.append(var_name)
+#                 if field_is_required:
+#                     run = para.add_run("_____")
+#                     run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+#                 else:
+#                     run = para.add_run("")
+#                 run.font.name = 'Arial'
+#                 run.font.size = Pt(12)
+
+
+#             last_end = end
+
+#         after = original_text[last_end:]
+#         if after:
+#             run = para.add_run(after)
+#             run.font.name = 'Arial'
+#             run.font.size = Pt(12)
+
+
+def clean_text(text):
+    """ניקוי טקסט מרווחים וסימני פיסוק כפולים"""
+    text = re.sub(r'\s+', ' ', text)  # רווחים מיותרים
+    text = re.sub(r'([.,;:!?])\s*\1+', r'\1', text)  # מחיקת כפילויות של סימני פיסוק
+    text = re.sub(r'\s*([.,;:!?])', r'\1', text)  # מחיקת רווח לפני סימני פיסוק
+    return text.strip()
+
+
 def process_paragraphs(paragraphs, cursor, variables_not_found, sql_id, values):
     for para in paragraphs:
         matches = list(re.finditer(VARIABLE_REGEX, para.text))
@@ -112,6 +205,7 @@ def process_paragraphs(paragraphs, cursor, variables_not_found, sql_id, values):
 
             before = original_text[last_end:start]
             if before:
+                before = re.sub(r'\s+', ' ', before)  # ניקוי רווחים מיותרים
                 run = para.add_run(before)
                 run.font.name = 'Arial'
                 run.font.size = Pt(12)
@@ -128,19 +222,21 @@ def process_paragraphs(paragraphs, cursor, variables_not_found, sql_id, values):
             # Check if field exists in SQL, if not insert it
             cursor.execute("SELECT COUNT(*) FROM Fields WHERE name = ?", (var_name,))
             if cursor.fetchone()[0] == 0:
-                cursor.execute("INSERT INTO Fields (name, type, length, required) VALUES (?, ?, ?, ?)",
-                               (var_name, var_type, int(var_len), int(var_required == '*')))
+                cursor.execute("INSERT INTO Fields (name, type, length, required,description) VALUES (?, ?, ?, ?, ?)",
+                               (var_name, var_type, int(var_len), int(var_required == '*'), var_description))
                 cursor.connection.commit()
 
-            # Fetch value from MongoDB
+            # בדיקה האם השדה קיים ב-SQL
+            cursor.execute("SELECT required FROM Fields WHERE name = ?", (var_name,))
+            row = cursor.fetchone()
+            field_is_required = row[0] == 1 if row else False
+
             value = values.get(var_name)
             field_errors = []
 
             if value is not None:
-                # ולידציה לפי סוג הנתון
                 sql_type = f"{var_type}({var_len})" if var_len else var_type
                 validated_value = validate_value_by_type(value, sql_type, field_name=var_name, errors=field_errors)
-                
 
                 if validated_value is not None and validated_value != "_____":
                     run = para.add_run(str(validated_value))
@@ -148,40 +244,34 @@ def process_paragraphs(paragraphs, cursor, variables_not_found, sql_id, values):
                     run.font.size = Pt(12)
                 else:
                     variables_not_found.append(var_name)
+                    if field_is_required:
+                        run = para.add_run("_____")
+                        run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+                        run.font.name = 'Arial'
+                        run.font.size = Pt(12)
+                    else:
+                        # לא להוסיף כלום ולא רווח
+                        pass
+            else:
+                variables_not_found.append(var_name)
+                if field_is_required:
                     run = para.add_run("_____")
                     run.font.highlight_color = WD_COLOR_INDEX.YELLOW
                     run.font.name = 'Arial'
                     run.font.size = Pt(12)
-            else:
-                variables_not_found.append(var_name)
-                run = para.add_run("_____")
-                run.font.highlight_color = WD_COLOR_INDEX.YELLOW
-                run.font.name = 'Arial'
-                run.font.size = Pt(12)
-
-
-            # if value:
-            #     run = para.add_run(str(value))
-            #     run.font.name = 'Arial'
-            #     run.font.size = Pt(12)
-            # # If value is None or empty, highlight the variable
-            # else:
-            #     variables_not_found.append(var_name)
-            #     run = para.add_run("_____")
-            #     run.font.highlight_color = WD_COLOR_INDEX.YELLOW
-            #     run.font.name = 'Arial'
-            #     run.font.size = Pt(12)
-
-            
-
+                else:
+                    # לא להוסיף כלום ולא רווח
+                    pass
 
             last_end = end
 
         after = original_text[last_end:]
         if after:
+            after = re.sub(r'\s+', ' ', after)  # ניקוי רווחים מיותרים
             run = para.add_run(after)
             run.font.name = 'Arial'
             run.font.size = Pt(12)
+
 
 def process_docx(path, sql_id):
     values = values_collection.find_one({"sql_id": sql_id}) or {}

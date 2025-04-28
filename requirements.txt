@@ -22,3 +22,7 @@ sphinx
 browsepy
 python-docx pymongo
 pywin32
+# pytesseract
+# pillow
+easyocr
+PyMuPDF

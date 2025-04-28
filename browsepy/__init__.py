@@ -35,6 +35,7 @@ from .Routes.Users import users_bp
 #from .Routes.additional_functions import addFunctions_bp
 from .Routes.Customers_Files import customer_files_bp
 from .Routes.documents import documents_bp
+from .Routes.ocr import ocr_bp
 
 
 
@@ -62,6 +63,7 @@ app.register_blueprint(userTypes_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(documents_bp)
 app.register_blueprint(customer_files_bp)
+app.register_blueprint(ocr_bp)
 
 app.config.update(
     # directory_base=compat.getcwd(),
