@@ -12,6 +12,7 @@ from docx.enum.text import WD_COLOR_INDEX
 from ..database import get_db_connection
 from datetime import datetime
 from docx.enum.text import WD_COLOR_INDEX
+from flask import send_file
 
 # ---------- General Definitions ----------
 documents_bp = Blueprint('documents', __name__)
@@ -96,89 +97,19 @@ def convert_doc_to_docx(input_path):
         print("שגיאה בהמרה ל-docx:", e)
         return None
 
-# def process_paragraphs(paragraphs, cursor, variables_not_found, sql_id, values):
-#     for para in paragraphs:
-#         matches = list(re.finditer(VARIABLE_REGEX, para.text))
-#         if not matches:
-#             continue
+#for downling
+def convert_docx_to_pdf(docx_path):
+    word = win32com.client.Dispatch("Word.Application")
+    word.Visible = False
 
-#         original_text = para.text
-#         para.clear()
-#         last_end = 0
+    doc = word.Documents.Open(docx_path)
 
-#         for match in matches:
-#             start, end = match.span()
-#             var_text = match.group(1)
-#             parts = var_text.split(',')
+    temp_pdf_path = os.path.splitext(docx_path)[0] + "_temp.pdf"
+    doc.SaveAs(temp_pdf_path, FileFormat=17)  # PDF
+    doc.Close()
+    word.Quit()
 
-#             before = original_text[last_end:start]
-#             if before:
-#                 run = para.add_run(before)
-#                 run.font.name = 'Arial'
-#                 run.font.size = Pt(12)
-
-#             if len(parts) < 5:
-#                 run = para.add_run(match.group(0))
-#                 run.font.name = 'Arial'
-#                 run.font.size = Pt(12)
-#                 last_end = end
-#                 continue
-
-#             var_name, var_type, var_len, var_required, var_description = [p.strip() for p in parts]
-
-#             # Check if field exists in SQL, if not insert it
-#             cursor.execute("SELECT COUNT(*) FROM Fields WHERE name = ?", (var_name,))
-#             if cursor.fetchone()[0] == 0:
-#                 cursor.execute("INSERT INTO Fields (name, type, length, required) VALUES (?, ?, ?, ?)",
-#                                (var_name, var_type, int(var_len), int(var_required == '*')))
-#                 cursor.connection.commit()
-
-#             # Fetch value from MongoDB
-#             value = values.get(var_name)
-#             field_errors = []
-
-#             cursor.execute("SELECT required FROM Fields WHERE name = ?", (var_name,))
-#             row = cursor.fetchone()
-#             field_is_required = row[0] == 1 if row else False
-
-#             if value is not None:
-#                 # ולידציה לפי סוג הנתון
-#                 sql_type = f"{var_type}({var_len})" if var_len else var_type
-#                 validated_value = validate_value_by_type(value, sql_type, field_name=var_name, errors=field_errors)
-                
-
-#                 if validated_value is not None and validated_value != "_____":
-#                     run = para.add_run(str(validated_value))
-#                     run.font.name = 'Arial'
-#                     run.font.size = Pt(12)
-#                 else:
-#                     variables_not_found.append(var_name)
-#                     if field_is_required:
-#                         run = para.add_run("_____")
-#                         run.font.highlight_color = WD_COLOR_INDEX.YELLOW
-#                     else:
-#                         run = para.add_run("")
-#                     run.font.name = 'Arial'
-#                     run.font.size = Pt(12)
-#             else:
-#                 variables_not_found.append(var_name)
-#                 if field_is_required:
-#                     run = para.add_run("_____")
-#                     run.font.highlight_color = WD_COLOR_INDEX.YELLOW
-#                 else:
-#                     run = para.add_run("")
-#                 run.font.name = 'Arial'
-#                 run.font.size = Pt(12)
-
-
-#             last_end = end
-
-#         after = original_text[last_end:]
-#         if after:
-#             run = para.add_run(after)
-#             run.font.name = 'Arial'
-#             run.font.size = Pt(12)
-
+    return temp_pdf_path
 
 def clean_text(text):
     """ניקוי טקסט מרווחים וסימני פיסוק כפולים"""
@@ -337,5 +268,51 @@ def process_document_route(sql_id):
         #     mongo_client.close()
 
         # אם יש צורך למחוק את הקובץ
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        # if os.path.exists(file_path):
+        #     os.remove(file_path)
+
+
+
+
+#export PDF file
+@documents_bp.route('/export/pdf/<sql_id>', methods=['POST'])
+def export_document_as_pdf(sql_id):
+    data = request.get_json()
+    file_path = data.get("file_path")
+    if not file_path:
+        return jsonify({"message": "יש לספק נתיב לקובץ"}), 400
+
+    temp_docx_path = None
+    temp_pdf_path = None
+
+    try:
+        # המרת doc ל-docx אם צריך
+        if file_path.endswith(".doc"):
+            file_path = convert_doc_to_docx(file_path)
+            if not file_path:
+                return jsonify({"message": "שגיאה בהמרת קובץ ל-docx"}), 500
+
+        # עיבוד הקובץ ויצירת docx חדש
+        process_docx(file_path, sql_id)
+
+        # יצירת נתיב של הקובץ החדש (שנקרא "טופל")
+        filename_wo_ext = os.path.splitext(os.path.basename(file_path))[0]
+        temp_docx_path = os.path.join(os.path.dirname(file_path), f"{filename_wo_ext} טופל.docx")
+
+        # המרה ל־PDF
+        temp_pdf_path = convert_docx_to_pdf(temp_docx_path)
+
+        # החזרת הקובץ להורדה
+        return send_file(temp_pdf_path, as_attachment=True)
+
+    except Exception as e:
+        return jsonify({"message": f"שגיאה: {str(e)}"}), 500
+
+    finally:
+        # ניקוי קבצים זמניים
+        for path in [file_path, temp_docx_path, temp_pdf_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass

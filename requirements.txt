@@ -26,3 +26,9 @@ pywin32
 # pillow
 easyocr
 PyMuPDF
+pdfplumber
+reportlab
+arabic-reshaper python-bidi
+pyodbc
+PyPDF2
+python-bidi arabic-reshaper
