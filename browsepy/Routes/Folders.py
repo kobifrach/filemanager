@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection
+from browsepy.Utils.decorators import safe_route
+
 
 folders_bp = Blueprint('folders', __name__)
 
 # Create a new generic folder and optionally link files to it
 @folders_bp.route('/folder', methods=['POST'])
+@safe_route
 def create_folder():
     data = request.get_json()
 
@@ -73,6 +76,7 @@ def create_folder():
 
 # Retrieve metadata and linked file IDs of a specific folder
 @folders_bp.route('/folder/<int:id>', methods=['GET'])
+@safe_route
 def get_folder(id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -105,6 +109,7 @@ def get_folder(id):
 
 # Update a folder's name and optional description
 @folders_bp.route('/folder/<int:id>', methods=['PUT'])
+@safe_route
 def update_folder(id):
     data = request.get_json()
     folder_name = data.get('folder_name')
@@ -135,6 +140,7 @@ def update_folder(id):
 
 # Delete a folder and remove all its associated file links
 @folders_bp.route('/folder/<int:id>', methods=['DELETE'])
+@safe_route
 def delete_folder(id):
     conn = get_db_connection()
     cursor = conn.cursor()    
@@ -156,6 +162,7 @@ def delete_folder(id):
 
 # Retrieve the list of all generic folders (ID and name)
 @folders_bp.route('/folders', methods=['GET'])
+@safe_route
 def get_all_folders():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -171,6 +178,7 @@ def get_all_folders():
 
 # Retrieve all unique files linked to the given folder IDs
 @folders_bp.route('/folders/files', methods=['POST'])
+@safe_route
 def get_files_by_folders():
     data = request.get_json()
     folder_ids = data.get('folder_ids', [])

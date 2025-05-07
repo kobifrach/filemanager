@@ -1,11 +1,14 @@
 from flask import Blueprint, jsonify, request
 from ..database import get_db_connection
+from browsepy.Utils.decorators import safe_route
+
 
 customer_folders_bp = Blueprint('customer_folders', __name__)
 
 
 # Get all folders for a specific customer
 @customer_folders_bp.route('/customer/<int:customer_id>/folders', methods=['GET'])
+@safe_route
 def get_customer_folders(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -31,6 +34,7 @@ def get_customer_folders(customer_id):
 
 # Delete a folder linked to a customer, including its associated files
 @customer_folders_bp.route('/customer/<int:customer_id>/folder/<int:folder_id>', methods=['DELETE'])
+@safe_route
 def delete_customer_folder(customer_id, folder_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -69,6 +73,7 @@ def delete_customer_folder(customer_id, folder_id):
 
 # Add a generic folder and all its files to a specific customer
 @customer_folders_bp.route('/customer/<int:customer_id>/folder', methods=['POST'])
+@safe_route
 def add_folder_to_customer(customer_id):
     data = request.get_json()
     folder_id = data.get('folder_id')

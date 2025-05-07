@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection
+from browsepy.Utils.decorators import safe_route
+
 
 customers_bp = Blueprint('customers', __name__)  # Blueprint definition for customer-related routes
 
 # Create a new customer
 @customers_bp.route('/customer', methods=['POST'])
+@safe_route
 def create_customer():
     data = request.get_json()
     first_name = data.get('first_name')
@@ -92,6 +95,7 @@ def create_customer():
 
 # Delete customer and associated records
 @customers_bp.route('/customer/<int:customer_id>', methods=['DELETE'])
+@safe_route
 def delete_customer(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -129,6 +133,7 @@ def delete_customer(customer_id):
 
 # Get all customers
 @customers_bp.route('/customers', methods=['GET'])
+@safe_route
 def get_all_customers():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -165,6 +170,7 @@ def get_all_customers():
 
 # Get specific customer by ID
 @customers_bp.route('/customer/<int:customer_id>', methods=['GET'], endpoint='get_customer_by_id')
+@safe_route
 def get_customer_by_id(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()

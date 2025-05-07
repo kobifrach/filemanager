@@ -1,15 +1,15 @@
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection
+from browsepy.Utils.decorators import safe_route
 
 customer_files_bp = Blueprint('customer_files', __name__)
 
-
 # Retrieve all files associated with a specific customer
 @customer_files_bp.route('/customer/<int:customer_id>/files', methods=['GET'])
+@safe_route
 def get_customer_files(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     try:
         # Fetch all files linked to the customer's folders
         cursor.execute('''
@@ -34,20 +34,16 @@ def get_customer_files(customer_id):
             return jsonify({"files": files_list}), 200
         else:
             return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 204
-
-    except Exception as e:
-        return jsonify({"message": f"שגיאה: {str(e)}"}), 500
-
     finally:
         cursor.close()
-
+        conn.close()
 
 # Delete a file from the Customers_Files table
 @customer_files_bp.route('/customer/file/<int:file_id>', methods=['DELETE'])
-def delete_file(file_id):
+@safe_route
+def delete_file(file_id): 
     conn = get_db_connection()
     cursor = conn.cursor()
-
     try:
         # Validate that the file exists
         cursor.execute('SELECT COUNT(*) FROM Customers_Files WHERE id = ?', (file_id,))
@@ -61,10 +57,6 @@ def delete_file(file_id):
 
         conn.commit()
         return jsonify({"message": f"הקובץ נמחק בהצלחה."}), 200
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"message": f"שגיאה: {str(e)}"}), 500
-
     finally:
         cursor.close()
+        conn.close()

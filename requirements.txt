@@ -32,3 +32,6 @@ arabic-reshaper python-bidi
 pyodbc
 PyPDF2
 python-bidi arabic-reshaper
+lxml
+docxtpl
+

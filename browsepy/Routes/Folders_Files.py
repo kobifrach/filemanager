@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection
+from browsepy.Utils.decorators import safe_route
 
 foldersFiles_bp = Blueprint('foldersFiles', __name__)  # Blueprint for managing folder-file relationships
 
 # Retrieve all folder-file relationships
 @foldersFiles_bp.route('/folder_files', methods=['GET'])
+@safe_route
 def get_folder_files():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -19,6 +21,7 @@ def get_folder_files():
 
 # Move a file from one folder to another
 @foldersFiles_bp.route('/folder_files', methods=['PUT'])
+@safe_route
 def move_file():
     data = request.get_json()
     file_id = data.get('file_id')
@@ -58,6 +61,7 @@ def move_file():
 
 # Add one or more files to a folder
 @foldersFiles_bp.route('/folder/<int:folder_id>/file', methods=['POST'])
+@safe_route
 def add_file_to_folder(folder_id):
     data = request.get_json()
     file_ids = data.get('file_ids', [])
@@ -111,6 +115,7 @@ def add_file_to_folder(folder_id):
 
 # Remove a file from a folder
 @foldersFiles_bp.route('/folder/<int:folder_id>/file/<int:file_id>', methods=['DELETE'])
+@safe_route
 def delete_file_from_folder(folder_id, file_id):
     conn = get_db_connection()
     cursor = conn.cursor()

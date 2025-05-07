@@ -1,13 +1,14 @@
-#נבדק, עובד מושלם
-
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection
+from browsepy.Utils.decorators import safe_route
+
 
 userTypes_bp = Blueprint('userTypes', __name__)  # יצירת Blueprint
 
 
 # יצירת סוג משתמש חדש
 @userTypes_bp.route('/user_type', methods=['POST'])
+@safe_route
 def create_user_type():
     data = request.get_json()
 
@@ -65,6 +66,7 @@ def create_user_type():
 
 # קריאה של כל סוגי המשתמשים
 @userTypes_bp.route('/user_types', methods=['GET'])
+@safe_route
 def get_user_types():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -77,6 +79,7 @@ def get_user_types():
 
 # עדכון סוג משתמש
 @userTypes_bp.route('/user_type/<int:id>', methods=['PUT'])
+@safe_route
 def update_user_type(id):
     data = request.get_json()
 
@@ -135,6 +138,7 @@ def update_user_type(id):
 
 # מחיקת סוג משתמש
 @userTypes_bp.route('/user_type/<int:id>', methods=['DELETE'])
+@safe_route
 def delete_user_type(id):
     conn = get_db_connection()
     cursor = conn.cursor()

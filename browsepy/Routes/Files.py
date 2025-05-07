@@ -1,11 +1,14 @@
 from flask import Blueprint, request, jsonify
 from ..database import get_db_connection, execute_db_operation
 import os
+from browsepy.Utils.decorators import safe_route
+
 
 files_bp = Blueprint('files', __name__)  # Blueprint for file management
 
 # Create a new file entry
 @files_bp.route('/file', methods=['POST'])
+@safe_route
 def create_file():
     data = request.get_json()
 
@@ -41,6 +44,7 @@ def create_file():
 
 # Retrieve all files
 @files_bp.route('/files', methods=['GET'])
+@safe_route
 def get_files():
     try:
         conn = get_db_connection()
@@ -61,6 +65,7 @@ def get_files():
 
 # Retrieve a specific file by its ID
 @files_bp.route('/file/<int:file_id>', methods=['GET'])
+@safe_route
 def get_file_by_id(file_id):
     try:
         conn = get_db_connection()
@@ -85,6 +90,7 @@ def get_file_by_id(file_id):
 
 # Update an existing file's metadata (not the content itself)
 @files_bp.route('/file/<int:id>', methods=['PUT'])
+@safe_route
 def update_file(id):
     data = request.get_json()
     
@@ -119,6 +125,7 @@ def update_file(id):
 
 # Delete a file by its ID
 @files_bp.route('/file/<int:id>', methods=['DELETE'])
+@safe_route
 def delete_file(id):
     conn = get_db_connection()
     cursor = conn.cursor()

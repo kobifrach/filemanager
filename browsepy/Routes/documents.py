@@ -13,6 +13,8 @@ from ..database import get_db_connection
 from datetime import datetime
 from docx.enum.text import WD_COLOR_INDEX
 from flask import send_file
+from browsepy.Utils.decorators import safe_route
+
 
 # ---------- General Definitions ----------
 documents_bp = Blueprint('documents', __name__)
@@ -238,6 +240,7 @@ def process_docx(path, sql_id):
 # ---------- Flask Routes ----------
 
 @documents_bp.route('/process/<sql_id>', methods=['POST'])
+@safe_route
 def process_document_route(sql_id):
     data = request.get_json()
     file_path = data.get("file_path")
@@ -271,11 +274,9 @@ def process_document_route(sql_id):
         # if os.path.exists(file_path):
         #     os.remove(file_path)
 
-
-
-
 #export PDF file
 @documents_bp.route('/export/pdf/<sql_id>', methods=['POST'])
+@safe_route
 def export_document_as_pdf(sql_id):
     data = request.get_json()
     file_path = data.get("file_path")
