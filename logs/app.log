@@ -1,0 +1,13 @@
+2025-05-08 13:46:10 | INFO | flask_app | Request to retrieve files for customer ID 27
+2025-05-08 13:46:10 | WARNING | flask_app | No files found for customer ID 27
+2025-05-08 13:46:12 | INFO | flask_app | Request to retrieve files for customer ID 27
+2025-05-08 13:46:12 | WARNING | flask_app | No files found for customer ID 27
+2025-05-08 13:46:34 | INFO | flask_app | Request to retrieve files for customer ID 66
+2025-05-08 13:46:34 | INFO | flask_app | Found 1 files for customer ID 66
+2025-05-08 14:00:56 | DEBUG | flask_app | This is a debug message
+2025-05-08 14:00:56 | INFO | flask_app | This is an info message
+2025-05-08 14:00:56 | WARNING | flask_app | This is a warning message
+2025-05-08 14:00:56 | ERROR | flask_app | This is an error message
+2025-05-08 14:00:56 | CRITICAL | flask_app | This is a critical message
+2025-05-08 14:00:56 | INFO | flask_app | Request to retrieve files for customer ID 62
+2025-05-08 14:00:56 | WARNING | flask_app | No files found for customer ID 62

@@ -6,11 +6,9 @@ import base64
 from urllib.parse import quote
 from flask import redirect, render_template, request, send_file, url_for, abort
 import mimetypes
-
 from flask import Response, send_from_directory, stream_with_context, make_response
 from werkzeug.exceptions import NotFound
 from werkzeug.utils import safe_join  # זה התיקון!
-
 from .appconfig import Flask
 from .manager import PluginManager
 from .file import Node, secure_filename
@@ -20,11 +18,8 @@ from . import __meta__ as meta
 from docx import Document
 from io import BytesIO
 from flask import render_template_string
-from flask import render_template
 from .database import get_db_connection
-from docx import Document
-from flask import render_template_string
-# ייבוא הראוטים והבלופרינטים
+# import the routes and blueprints
 from .Routes.Customers import customers_bp
 from .Routes.Files import files_bp
 from .Routes.Folders_Files import foldersFiles_bp
@@ -32,13 +27,9 @@ from .Routes.Folders import folders_bp
 from .Routes.Customers_Folders import customer_folders_bp
 from .Routes.User_Type import userTypes_bp
 from .Routes.Users import users_bp
-#from .Routes.additional_functions import addFunctions_bp
 from .Routes.Customers_Files import customer_files_bp
 from .Routes.Documents import documents_bp
-# from .Routes.PdfDocuments import pdf_documents_bp
-# from .Routes.ocr import ocr_bp
-
-
+from .Utils.logger import setup_logger
 
 __app__ = meta.app  # noqa
 __version__ = meta.version  # noqa
@@ -46,7 +37,6 @@ __license__ = meta.license  # noqa
 __author__ = meta.author  # noqa
 __basedir__ = os.path.abspath(os.path.dirname(compat.fsdecode(__file__)))
 
-logger = logging.getLogger(__name__)
 
 app = Flask(
     __name__,
@@ -54,6 +44,10 @@ app = Flask(
     static_folder=os.path.join(__basedir__, "static"),
     template_folder=os.path.join(__basedir__, "templates")
     )
+
+
+app.logger = setup_logger('flask_app')
+
 
 app.register_blueprint(customers_bp)
 app.register_blueprint(files_bp)
@@ -68,15 +62,12 @@ app.register_blueprint(customer_files_bp)
 # app.register_blueprint(ocr_bp)
 
 app.config.update(
-    # directory_base=compat.getcwd(),
-    directory_base=os.path.abspath('./files'),  # שמירה בתיקיית files
-    # directory_start=None,
-    directory_start=os.path.abspath('./files/start_folder'),  # תיקיית התחלה
-    # directory_remove=None,
-    directory_remove=os.path.abspath('./files/removable'),  # תיקיית מחיקה
-    # directory_upload=None,
-    directory_upload=os.path.abspath('./files/uploads'),  # תיקיית העלאה
-    
+    directory_base=os.path.join(os.getcwd(), "files"),  # תיקייה גנרית
+    directory_start=os.path.join(os.getcwd(), "files", "start_folder"),  # תיקיית התחלה גנרית
+    directory_upload=os.path.join(os.getcwd(), "files", "uploads"),  # תיקיית העלאה גנרית
+    directory_remove=os.path.join(os.getcwd(), "files", "removable"),  # תיקיית מחיקה גנרית
+
+
     directory_tar_buffsize=262144,
     directory_downloadable=True,
     use_binary_multiples=True,

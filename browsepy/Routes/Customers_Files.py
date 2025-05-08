@@ -1,62 +1,80 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from ..database import get_db_connection
 from browsepy.Utils.decorators import safe_route
 
 customer_files_bp = Blueprint('customer_files', __name__)
 
-# Retrieve all files associated with a specific customer
+def dict_cursor(cursor):
+    # Convert SQL cursor results to a list of dictionaries
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
 @customer_files_bp.route('/customer/<int:customer_id>/files', methods=['GET'])
 @safe_route
 def get_customer_files(customer_id):
+    # Log the request to retrieve files for a specific customer ID
+    current_app.logger.info(f"Request to retrieve files for customer ID {customer_id}")  
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Fetch all files linked to the customer's folders
-        cursor.execute('''
-            SELECT f.id AS file_id, f.name, f.file_type, f.File_URL
+        # Execute the query to fetch files
+        cursor.execute(''' 
+            SELECT f.id AS file_id, f.name, f.file_type, f.File_URL AS file_url
             FROM Customers_Folders cf
             JOIN Folders_Files ff ON cf.folder_id = ff.folder_id
             JOIN Files f ON ff.file_id = f.id
             WHERE cf.customer_id = ?
         ''', (customer_id,))
 
-        files = cursor.fetchall()
+        files = dict_cursor(cursor)
 
         if files:
-            files_list = [
-                {
-                    "file_id": file[0],
-                    "name": file[1],
-                    "file_type": file[2],
-                    "File_URL": file[3]
-                } for file in files
-            ]
-            return jsonify({"files": files_list}), 200
+            # Log the number of files found for the customer
+            current_app.logger.info(f"Found {len(files)} files for customer ID {customer_id}")  
+            return jsonify({"files": files}), 200
         else:
-            return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 204
+            # Log a warning if no files are found
+            current_app.logger.warning(f"No files found for customer ID {customer_id}")  
+            return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 404
+    except Exception as e:
+        # Log an error if there is a problem with the query
+        current_app.logger.error(f"Error retrieving files for customer ID {customer_id}: {str(e)}")  
+        return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500
     finally:
         cursor.close()
         conn.close()
 
-# Delete a file from the Customers_Files table
 @customer_files_bp.route('/customer/file/<int:file_id>', methods=['DELETE'])
 @safe_route
-def delete_file(file_id): 
+def delete_file(file_id):
+    # Log the request to delete a file with a specific ID
+    current_app.logger.info(f"Request to delete file with ID {file_id}")  
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Validate that the file exists
-        cursor.execute('SELECT COUNT(*) FROM Customers_Files WHERE id = ?', (file_id,))
-        file_exists = cursor.fetchone()[0]
-        
-        if file_exists == 0:
+        # Check if the file exists in the Customers_Files table
+        cursor.execute('SELECT 1 FROM Customers_Files WHERE id = ?', (file_id,))
+        file_exists = cursor.fetchone()
+
+        if not file_exists:
+            # Log a warning if the file does not exist
+            current_app.logger.warning(f"File with ID {file_id} does not exist")  
             return jsonify({"message": f"שגיאה: קובץ עם מזהה {file_id} לא קיים."}), 404
 
-        # Delete the file from the customer's files
+        # Delete the file
         cursor.execute('DELETE FROM Customers_Files WHERE id = ?', (file_id,))
-
         conn.commit()
-        return jsonify({"message": f"הקובץ נמחק בהצלחה."}), 200
+
+        # Log success after deleting the file
+        current_app.logger.info(f"File with ID {file_id} successfully deleted")  
+        return jsonify({"message": "הקובץ נמחק בהצלחה."}), 200
+    except Exception as e:
+        # Log an error if there is a problem deleting the file
+        current_app.logger.error(f"Error deleting file with ID {file_id}: {str(e)}")  
+        conn.rollback()  # Rollback in case of error
+        return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500
     finally:
         cursor.close()
         conn.close()
