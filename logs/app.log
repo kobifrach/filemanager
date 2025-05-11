@@ -11,3 +11,4 @@
 2025-05-08 14:00:56 | CRITICAL | flask_app | This is a critical message
 2025-05-08 14:00:56 | INFO | flask_app | Request to retrieve files for customer ID 62
 2025-05-08 14:00:56 | WARNING | flask_app | No files found for customer ID 62
+2025-05-11 11:20:59 | ERROR | flask_app | Error converting to DOCX: (-2147352567, 'Exception occurred.', (0, 'Microsoft Word', 'מצטערים, לא היתה אפשרות למצוא את הקובץ. האם הוא הועבר, נמחק או ששמו השתנה?\r ("C:\\Users\\User\\...\\ממופה\\יפוי כוח1.doc")', 'wdmain11.chm', 24654, -2146823114), None)

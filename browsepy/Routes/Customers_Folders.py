@@ -91,11 +91,10 @@ def add_folder_to_customer(customer_id):
     if not folder_id or not isinstance(folder_id, int):
         current_app.logger.warning(f"Invalid folder ID provided: {folder_id}")  # Log invalid input
         return jsonify({"message": "שגיאה: חובה לציין מזהה תיקייה חוקי (folder_id)"}), 400
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:     
         # Validate that the folder exists
         cursor.execute('SELECT id, name FROM Folders WHERE id = ?', (folder_id,))
         folder = cursor.fetchone()
