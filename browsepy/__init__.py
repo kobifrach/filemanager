@@ -1,10 +1,10 @@
-import logging
+
 import os
 import os.path
 import json
 import base64
 from urllib.parse import quote
-from flask import redirect, render_template, request, send_file, url_for, abort
+from flask import redirect, render_template, request, send_file, url_for, abort, current_app
 import mimetypes
 from flask import Response, send_from_directory, stream_with_context, make_response
 from werkzeug.exceptions import NotFound
@@ -98,7 +98,7 @@ def iter_cookie_browse_sorting(cookies):
         for path, prop in json.loads(base64.b64decode(data).decode('utf-8')):
             yield path, prop
     except (ValueError, TypeError, KeyError) as e:
-        logger.exception(e)
+        current_app.logger.exception(e)
 
 
 
@@ -469,5 +469,5 @@ def page_not_found_error(e):
 
 @app.errorhandler(500)
 def internal_server_error(e):  # pragma: no cover
-    logger.exception(e)
+    current_app.logger.exception(e)
     return getattr(e, 'message', 'Internal server error'), 500

@@ -19,6 +19,14 @@ def get_customer_folders(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        #check if the customer exist
+        cursor.execute('SELECT 1 FROM Customers WHERE id = ?', (customer_id,))
+        customer_exists = cursor.fetchone()
+
+        if not customer_exists:
+            # Log a warning if the file does not exist
+            current_app.logger.warning(f"customer with ID {customer_id} does not exist")  
+            return jsonify({"message": f"שגיאה: לקוח עם מזהה {customer_id} לא קיים."}), 404
         cursor.execute(''' 
             SELECT f.id, f.name
             FROM Folders f

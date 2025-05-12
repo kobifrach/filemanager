@@ -12,3 +12,35 @@
 2025-05-08 14:00:56 | INFO | flask_app | Request to retrieve files for customer ID 62
 2025-05-08 14:00:56 | WARNING | flask_app | No files found for customer ID 62
 2025-05-11 11:20:59 | ERROR | flask_app | Error converting to DOCX: (-2147352567, 'Exception occurred.', (0, 'Microsoft Word', 'מצטערים, לא היתה אפשרות למצוא את הקובץ. האם הוא הועבר, נמחק או ששמו השתנה?\r ("C:\\Users\\User\\...\\ממופה\\יפוי כוח1.doc")', 'wdmain11.chm', 24654, -2146823114), None)
+2025-05-12 13:11:20 | INFO | flask_app | Request to retrieve files for customer ID 62
+2025-05-12 13:11:20 | WARNING | flask_app | No files found for customer ID 62
+2025-05-12 13:11:35 | INFO | flask_app | Request to retrieve files for customer ID 62
+2025-05-12 13:11:35 | WARNING | flask_app | No files found for customer ID 62
+2025-05-12 13:12:11 | INFO | flask_app | Request to retrieve files for customer ID 61
+2025-05-12 13:12:11 | INFO | flask_app | Found 1 files for customer ID 61
+2025-05-12 13:16:24 | INFO | flask_app | Request to retrieve files for customer ID 62
+2025-05-12 13:16:24 | WARNING | flask_app | customer with ID 62 does not exist
+2025-05-12 13:16:48 | INFO | flask_app | Request to retrieve files for customer ID 62
+2025-05-12 13:16:48 | WARNING | flask_app | customer with ID 62 does not exist
+2025-05-12 13:17:28 | INFO | flask_app | Request to retrieve files for customer ID 61
+2025-05-12 13:17:28 | INFO | flask_app | Found 1 files for customer ID 61
+2025-05-12 13:17:51 | INFO | flask_app | Request to delete file with ID 23
+2025-05-12 13:17:51 | WARNING | flask_app | File with ID 23 does not exist
+2025-05-12 13:47:13 | INFO | flask_app | Request to delete file with ID 79
+2025-05-12 13:47:13 | WARNING | flask_app | File with ID 79 does not exist
+2025-05-12 13:47:18 | INFO | flask_app | Request to delete file with ID 80
+2025-05-12 13:47:18 | WARNING | flask_app | File with ID 80 does not exist
+2025-05-12 13:47:36 | INFO | flask_app | Request to delete file with ID 1002
+2025-05-12 13:47:36 | WARNING | flask_app | File with ID 1002 does not exist
+2025-05-12 13:47:49 | INFO | flask_app | Request to delete file with ID 1003
+2025-05-12 13:47:49 | WARNING | flask_app | File with ID 1003 does not exist
+2025-05-12 13:48:18 | INFO | flask_app | Request to delete file with ID 35
+2025-05-12 13:48:18 | INFO | flask_app | File with ID 35 successfully deleted
+2025-05-12 13:49:07 | INFO | flask_app | Request to retrieve folders for customer ID 61
+2025-05-12 13:49:07 | INFO | flask_app | Found 2 folders for customer ID 61
+2025-05-12 13:49:13 | INFO | flask_app | Request to retrieve folders for customer ID 62
+2025-05-12 13:49:13 | WARNING | flask_app | No folders found for customer ID 62
+2025-05-12 13:50:33 | INFO | flask_app | Request to retrieve folders for customer ID 62
+2025-05-12 13:50:33 | WARNING | flask_app | customer with ID 62 does not exist
+2025-05-12 13:52:26 | INFO | flask_app | Request to delete folder with ID 15 for customer ID 27
+2025-05-12 13:52:26 | INFO | flask_app | Folder ID 15 successfully deleted for customer ID 27
