@@ -16,6 +16,8 @@ def validate_email(email):
 
 def generate_random_password(length=12):
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*()"
+    print(f"Generated password: {length} characters long")
+    print(f"Alphabet used: {alphabet}")
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
@@ -23,30 +25,35 @@ def generate_random_password(length=12):
 @customers_bp.route('/customer', methods=['POST'])
 @safe_route
 def create_customer():
-    data = request.get_json()
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
-    email = data.get('email')
-
-    if not first_name or not last_name:
-        return jsonify({"message": "שגיאה: יש להזין שם פרטי ושם משפחה."}), 400
-    
-    if not email or not validate_email(email):
-        return jsonify({"message": "שגיאה: כתובת האימייל אינה תקינה."}), 400
-
-    customer_details = {
-        "id_number": data.get('id_number'),
-        "first_name": first_name,
-        "last_name": last_name,
-        "email": email,
-        "phone": data.get('phone'),
-        "password": data.get('password')
-    }
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
+    print("Creating a new customer...")
     try:
+        data = request.get_json()
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        email = data.get('email')
+
+        if not first_name or not last_name:
+            return jsonify({"message": "שגיאה: יש להזין שם פרטי ושם משפחה."}), 400
+        
+        if not email or not validate_email(email):
+            return jsonify({"message": "שגיאה: כתובת האימייל אינה תקינה."}), 400
+
+        customer_details = {
+            "id_number": data.get('id_number'),
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "phone": data.get('phone')
+        }
+
+        raw_password = generate_random_password()
+        print(f"Generated password: {raw_password}")
+        hashed_password = generate_password_hash(raw_password)
+        print(f"Hashed password: {hashed_password}")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+    
         # Check for email uniqueness
         cursor.execute('SELECT COUNT(*) FROM Customers WHERE email = ?', (customer_details['email'],))
         if cursor.fetchone()[0] > 0:
@@ -63,7 +70,7 @@ def create_customer():
             OUTPUT INSERTED.id
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (customer_details['id_number'], first_name, last_name, 
-              customer_details.get('email'), customer_details.get('phone'), customer_details.get('password')))
+              customer_details.get('email'), customer_details.get('phone'), hashed_password))
 
         customer_id = cursor.fetchone()[0]
         folder_ids = data.get('folder_ids', [])
@@ -104,7 +111,7 @@ def create_customer():
 
         conn.commit()
         current_app.logger.info(f"Customer ID {customer_id} created successfully")  # Log creation
-        return jsonify({"message": "הלקוח נוצר בהצלחה", "customer_id": customer_id}), 201
+        return jsonify({"message": "הלקוח נוצר בהצלחה", "customer_id": customer_id,"password": raw_password}), 201
 
     except Exception as e:
         conn.rollback()

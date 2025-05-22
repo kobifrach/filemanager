@@ -1,6 +1,5 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash
-import pyodbc  # או כל דרייבר אחר של DB שלך
 from ..utils.JWT import generate_token
 from ..database.database import get_db_connection
 
@@ -10,13 +9,12 @@ def get_user_by_username(username):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # שאילתת UNION שמחזירה user_type ו-role לפי הטבלה
     query = """
-    SELECT id, username, password_hash, 'user' AS user_type, role
+    SELECT id, email AS username, password, 'user' AS user_type, role
     FROM Users
     WHERE email = ?
     UNION
-    SELECT id, username, password_hash, 'customer' AS user_type, role
+    SELECT id, email AS username, password, 'customer' AS user_type, role
     FROM Customers
     WHERE email = ?
     """
@@ -29,7 +27,6 @@ def get_user_by_username(username):
     if not row:
         return None
 
-    # המרת תוצאה לאובייקט או dict נוח לשימוש
     user = {
         'id': row[0],
         'username': row[1],

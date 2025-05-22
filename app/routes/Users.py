@@ -66,7 +66,7 @@ def create_user():
 
         # מחזירים את הסיסמה הגולמית יחד עם ההודעה
         return jsonify({
-            "message": "User created successfully", 
+            "message": "משתמש נוצר בהצלחה", 
             "user_id": user_id,
             "password": raw_password
         }), 201
