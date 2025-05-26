@@ -7,6 +7,7 @@ import secrets
 import string
 from werkzeug.security import generate_password_hash
 
+
 users_bp = Blueprint('users', __name__)
 
 
@@ -18,7 +19,7 @@ def generate_random_password(length=12):
 # Create a new user
 @users_bp.route('/api/user', methods=['POST'])
 @safe_route
-# @token_required()
+@token_required(allowed_roles=["admin","manager"])
 def create_user():
     try:
         data = request.get_json()
@@ -81,6 +82,7 @@ def create_user():
 # Fetch specific user details
 @users_bp.route('/api/user/<int:id>', methods=['GET'])
 @safe_route
+@token_required(allowed_roles=["user","admin","manager"])
 def get_user(id):
     try:
         conn = get_db_connection()
@@ -115,7 +117,7 @@ def get_user(id):
 # Fetch all users
 @users_bp.route('/api/users', methods=['GET'])
 @safe_route
-@token_required()
+@token_required(allowed_roles=["admin","manager"])
 def get_users():
     try:
         conn = get_db_connection()
@@ -136,6 +138,8 @@ def get_users():
 # Update user details
 @users_bp.route('/api/user/<int:id>', methods=['PUT'])
 @safe_route
+@token_required(allowed_roles=["user","admin","manager"])
+
 def update_user(id):
     try:
         data = request.get_json()
@@ -169,6 +173,8 @@ def update_user(id):
 # Delete a user
 @users_bp.route('/api/user/<int:id>', methods=['DELETE'])
 @safe_route
+@token_required(allowed_roles=["user","admin","manager"])
+
 def delete_user(id):
     try:
         conn = get_db_connection()

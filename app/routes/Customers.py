@@ -4,6 +4,8 @@ from ..utils.decorators import safe_route
 import secrets
 import string
 from werkzeug.security import generate_password_hash
+from ..utils.jwt_decorator import token_required
+
 import re  # Import regex module for email validation
 
 customers_bp = Blueprint('customers', __name__)  # Blueprint definition for customer-related routes
@@ -24,6 +26,7 @@ def generate_random_password(length=12):
 # Create a new customer
 @customers_bp.route('/customer', methods=['POST'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def create_customer():
     print("Creating a new customer...")
     try:
@@ -124,6 +127,7 @@ def create_customer():
 # Delete customer and associated records
 @customers_bp.route('/customer/<int:customer_id>', methods=['DELETE'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def delete_customer(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -159,6 +163,7 @@ def delete_customer(customer_id):
 # Get all customers
 @customers_bp.route('/customers', methods=['GET'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def get_all_customers():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -198,7 +203,15 @@ def get_all_customers():
 # Get specific customer by ID
 @customers_bp.route('/customer/<int:customer_id>', methods=['GET'], endpoint='get_customer_by_id')
 @safe_route
+@token_required()
 def get_customer_by_id(customer_id):
+
+    current_user_id = request.user['id']
+    current_user_role = request.user['role']
+    if current_user_role=='customer' and current_user_id!=customer_id:
+        return jsonify({"message": "לא מורשה"}),403
+
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -235,9 +248,17 @@ def get_customer_by_id(customer_id):
 
 # Update customer details
 @customers_bp.route('/customer/<int:customer_id>', methods=['PUT'])
+@safe_route
+@token_required
 def update_customer(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    current_user_id = request.user['id']
+    current_user_role = request.user['role']
+    if current_user_role=='customer' and current_user_id!=customer_id:
+        return jsonify({"message": "לא מורשה"}),403
+
 
     try:
         data = request.get_json()

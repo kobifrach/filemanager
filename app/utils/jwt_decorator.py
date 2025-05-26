@@ -33,7 +33,3 @@ def token_required(allowed_roles=None):
         return decorated
     return decorator
 
-#אני כבר לא אוחזת מה הול פה
-# def token_required(f):
-# יש גם את הקטע של הטוקן וגם את הקטע של הצפנת סיסמא
-#תראי איזה חתיך

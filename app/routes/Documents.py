@@ -13,6 +13,7 @@ from ..database.database import get_db_connection
 from datetime import datetime
 from flask import send_file
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 
 # ---------- General Definitions ----------
@@ -238,6 +239,7 @@ def process_docx(path, sql_id):
 
 @documents_bp.route('/process/<sql_id>', methods=['POST'])
 @safe_route
+@token_required()
 def process_document_route(sql_id):
     # Route for processing DOCX file
     data = request.get_json()
@@ -262,6 +264,55 @@ def process_document_route(sql_id):
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
+
+
+@documents_bp.route('/extract_variables', methods=['POST'])
+@safe_route
+@token_required()
+def extract_variables_route():
+    data = request.get_json()
+    file_path = data.get("file_path")
+    if not file_path:
+        return jsonify({"message": "יש לספק נתיב לקובץ"}), 400
+
+    try:
+        if file_path.endswith(".doc"):
+            file_path = convert_doc_to_docx(file_path)
+            if not file_path:
+                return jsonify({"message": "שגיאה בהמרת קובץ ל-docx"}), 500
+
+        doc = Document(file_path)  # טען את הקובץ כאן
+        variables_found = set()
+
+        # Process paragraphs to extract variables
+        for para in doc.paragraphs:
+            matches = re.findall(VARIABLE_REGEX, para.text)
+            for match in matches:
+                parts = match.split(',')
+                if parts:
+                    variables_found.add(parts[0].strip())
+
+        # Process tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        matches = re.findall(VARIABLE_REGEX, para.text)
+                        for match in matches:
+                            parts = match.split(',')
+                            if parts:
+                                variables_found.add(parts[0].strip())
+
+        # Convert set to list
+        variables_list = list(variables_found)
+
+        return jsonify({
+            "message": "משתנים נמשכו בהצלחה",
+            "variables": variables_list
+        }), 200
+    except Exception as e:
+        current_app.logger.error(f"Error extracting variables: {e}")
+        return jsonify({"message": f"שגיאה: {str(e)}"}), 500
 
 # @documents_bp.route('/export/pdf/<sql_id>', methods=['POST'])
 # @safe_route
@@ -302,6 +353,7 @@ def process_document_route(sql_id):
 #     return send_file(file_path, as_attachment=True)
 
 @documents_bp.route('/download', methods=['POST'])
+@token_required
 def download_pdf():
     # Assuming you pass only the filename (without path)
     data = request.get_json()

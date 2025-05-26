@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from ..database.database import get_db_connection
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 customer_files_bp = Blueprint('customer_files', __name__)
 
@@ -11,21 +12,29 @@ def dict_cursor(cursor):
 
 @customer_files_bp.route('/customer/<int:customer_id>/files', methods=['GET'])
 @safe_route
+@token_required()  
 def get_customer_files(customer_id):
-    # Log the request to retrieve files for a specific customer ID
     current_app.logger.info(f"Request to retrieve files for customer ID {customer_id}")  
     
+    # קבל את מזהה המשתמש מהבקשה
+    user_id = request.user['id']  # מזהה המשתמש מה-payload
+    user_role = request.user['role']  # תפקיד המשתמש מה-payload
+
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        #check if the customer exist
+        # בדוק אם הלקוח קיים
         cursor.execute('SELECT 1 FROM Customers WHERE id = ?', (customer_id,))
         customer_exists = cursor.fetchone()
 
         if not customer_exists:
-            # Log a warning if the file does not exist
             current_app.logger.warning(f"customer with ID {customer_id} does not exist")  
             return jsonify({"message": f"שגיאה: לקוח עם מזהה {customer_id} לא קיים."}), 404
+
+        # אם המשתמש הוא לקוח, בדוק אם הוא מנסה לגשת ללקוח שלו בלבד
+        if user_role == 'customer' and user_id != customer_id:
+            return jsonify({"message": "אין לך הרשאה לגשת לקבצים של לקוח אחר."}), 403
+
         # Execute the query to fetch files
         cursor.execute(''' 
             SELECT f.id AS file_id, f.name, f.file_type, f.File_URL AS file_url
@@ -38,23 +47,22 @@ def get_customer_files(customer_id):
         files = dict_cursor(cursor)
 
         if files:
-            # Log the number of files found for the customer
             current_app.logger.info(f"Found {len(files)} files for customer ID {customer_id}")  
             return jsonify({"files": files}), 200
         else:
-            # Log a warning if no files are found
             current_app.logger.warning(f"No files found for customer ID {customer_id}")  
             return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 404
     except Exception as e:
-        # Log an error if there is a problem with the query
         current_app.logger.error(f"Error retrieving files for customer ID {customer_id}: {str(e)}")  
         return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500
     finally:
         cursor.close()
         conn.close()
 
+
 @customer_files_bp.route('/customer/file/<int:file_id>', methods=['DELETE'])
 @safe_route
+@token_required() #check if the customer delete him file, not other
 def delete_file(file_id):
     # Log the request to delete a file with a specific ID
     current_app.logger.info(f"Request to delete file with ID {file_id}")  

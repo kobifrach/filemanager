@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify, current_app
 from ..database.database import get_db_connection
 import os
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 files_bp = Blueprint('files', __name__)  # Blueprint for file management
 
 # Create a new file entry
 @files_bp.route('/file', methods=['POST'])
 @safe_route
+@token_required()
 def create_file():
     data = request.get_json()
     file_name = data.get('name')
@@ -99,6 +101,7 @@ def get_file_by_id(file_id):
 # Update existing file metadata
 @files_bp.route('/file/<int:id>', methods=['PUT'])
 @safe_route
+@token_required()
 def update_file(id):
     data = request.get_json()
     name = data.get('name')
@@ -139,6 +142,7 @@ def update_file(id):
 # Delete a file by ID
 @files_bp.route('/file/<int:id>', methods=['DELETE'])
 @safe_route
+@token_required()
 def delete_file(id):
     conn = get_db_connection()
     cursor = conn.cursor()

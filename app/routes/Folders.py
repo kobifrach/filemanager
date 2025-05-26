@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from ..database.database import get_db_connection
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 folders_bp = Blueprint('folders', __name__)
 
@@ -25,6 +26,7 @@ def execute_db_query(query, params=None, fetchone=False):
 # Create a new generic folder and optionally link files to it
 @folders_bp.route('/folder', methods=['POST'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def create_folder():
     data = request.get_json()
 
@@ -80,6 +82,7 @@ def create_folder():
 # Retrieve metadata and linked file IDs of a specific folder
 @folders_bp.route('/folder/<int:id>', methods=['GET'])
 @safe_route
+@token_required()
 def get_folder(id):
     try:
         folder = execute_db_query('''
@@ -110,6 +113,7 @@ def get_folder(id):
 # Update a folder's name and optional description
 @folders_bp.route('/folder/<int:id>', methods=['PUT'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def update_folder(id):
     data = request.get_json()
     folder_name = data.get('folder_name')
@@ -143,6 +147,7 @@ def update_folder(id):
 # Delete a folder and remove all its associated file links
 @folders_bp.route('/folder/<int:id>', methods=['DELETE'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def delete_folder(id):
     try:
         # Check if the folder exists
@@ -166,6 +171,7 @@ def delete_folder(id):
 # Retrieve the list of all generic folders (ID and name)
 @folders_bp.route('/folders', methods=['GET'])
 @safe_route
+@token_required()
 def get_all_folders():
     try:
         folders = [{"id": row[0], "name": row[1]} for row in execute_db_query('''
@@ -182,6 +188,7 @@ def get_all_folders():
 # Retrieve all unique files linked to the given folder IDs
 @folders_bp.route('/folders/files', methods=['POST'])
 @safe_route
+@token_required
 def get_files_by_folders():
     data = request.get_json()
     folder_ids = data.get('folder_ids', [])

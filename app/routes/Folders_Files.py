@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify, current_app
 from ..database.database import get_db_connection
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 foldersFiles_bp = Blueprint('foldersFiles', __name__)  # Blueprint for managing folder-file relationships
 
 # Retrieve all folder-file relationships
 @foldersFiles_bp.route('/folder_files', methods=['GET'])
 @safe_route
+@token_required()
 def get_folder_files():
     current_app.logger.info("Fetching all folder-file relationships...")
     conn = get_db_connection()
@@ -27,6 +29,7 @@ def get_folder_files():
 # Move a file from one folder to another
 @foldersFiles_bp.route('/folder_files', methods=['PUT'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def move_file():
     data = request.get_json()
     file_id = data.get('file_id')
@@ -67,6 +70,7 @@ def move_file():
 # Add one or more files to a folder
 @foldersFiles_bp.route('/folder/<int:folder_id>/file', methods=['POST'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def add_file_to_folder(folder_id):
     data = request.get_json()
     file_ids = data.get('file_ids', [])
@@ -121,6 +125,7 @@ def add_file_to_folder(folder_id):
 # Remove a file from a folder
 @foldersFiles_bp.route('/folder/<int:folder_id>/file/<int:file_id>', methods=['DELETE'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def delete_file_from_folder(folder_id, file_id):
     current_app.logger.info(f"Deleting file {file_id} from folder {folder_id}...")
     conn = get_db_connection()

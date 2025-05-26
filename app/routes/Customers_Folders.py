@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from ..database.database import get_db_connection
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 customer_folders_bp = Blueprint('customer_folders', __name__)
 
@@ -13,20 +14,29 @@ def dict_cursor(cursor):
 # Get all folders for a specific customer
 @customer_folders_bp.route('/customer/<int:customer_id>/folders', methods=['GET'])
 @safe_route
+@token_required()  # Anyone with a valid token can access
 def get_customer_folders(customer_id):
     current_app.logger.info(f"Request to retrieve folders for customer ID {customer_id}")  # Log the request
     
+    
+    # Assume: user information is available in the request payload after token validation
+    current_user_id = request.user['id']  # Get the current user's ID from the request
+    current_user_role = request.user['role']  # Get the current user's role from the request
+
+    if current_user_role == 'customer' and current_user_id != customer_id:
+        return jsonify({"message": "שגיאה: לקוח יכול לגשת רק לתיקיות שלו."}), 403
+
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        #check if the customer exist
+        # Check if the customer exists
         cursor.execute('SELECT 1 FROM Customers WHERE id = ?', (customer_id,))
         customer_exists = cursor.fetchone()
 
         if not customer_exists:
-            # Log a warning if the file does not exist
             current_app.logger.warning(f"customer with ID {customer_id} does not exist")  
             return jsonify({"message": f"שגיאה: לקוח עם מזהה {customer_id} לא קיים."}), 404
+
         cursor.execute(''' 
             SELECT f.id, f.name
             FROM Folders f
@@ -37,21 +47,23 @@ def get_customer_folders(customer_id):
         folders = dict_cursor(cursor)
 
         if folders:
-            current_app.logger.info(f"Found {len(folders)} folders for customer ID {customer_id}")  # Log found folders
+            current_app.logger.info(f"Found {len(folders)} folders for customer ID {customer_id}")  
             return jsonify({"folders": folders}), 200
         else:
-            current_app.logger.warning(f"No folders found for customer ID {customer_id}")  # Log no folders found
+            current_app.logger.warning(f"No folders found for customer ID {customer_id}")  
             return jsonify({"message": "לא נמצאו תיקיות עבור הלקוח."}), 404
     except Exception as e:
-        current_app.logger.error(f"Error fetching folders for customer ID {customer_id}: {str(e)}")  # Log error
+        current_app.logger.error(f"Error fetching folders for customer ID {customer_id}: {str(e)}")  
         return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500
     finally:
         cursor.close()
         conn.close()
 
+
 # Delete a folder linked to a customer, including its associated files
 @customer_folders_bp.route('/customer/<int:customer_id>/folder/<int:folder_id>', methods=['DELETE'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def delete_customer_folder(customer_id, folder_id):
     current_app.logger.info(f"Request to delete folder with ID {folder_id} for customer ID {customer_id}")  # Log request
     
@@ -92,6 +104,7 @@ def delete_customer_folder(customer_id, folder_id):
 # Add a generic folder and all its files to a specific customer
 @customer_folders_bp.route('/customer/<int:customer_id>/folder', methods=['POST'])
 @safe_route
+@token_required(allowed_roles=["user","manager","admin"])
 def add_folder_to_customer(customer_id):
     data = request.get_json()
     folder_id = data.get('folder_id')

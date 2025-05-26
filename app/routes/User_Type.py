@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from ..database.database import get_db_connection
 from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 
 userTypes_bp = Blueprint('userTypes', __name__)  # יצירת Blueprint
@@ -9,6 +10,7 @@ userTypes_bp = Blueprint('userTypes', __name__)  # יצירת Blueprint
 # יצירת סוג משתמש חדש
 @userTypes_bp.route('/user_type', methods=['POST'])
 @safe_route
+@token_required(allowed_roles=["admin","manager"])
 def create_user_type():
     try:
         data = request.get_json()
@@ -76,6 +78,7 @@ def create_user_type():
 # קריאה של כל סוגי המשתמשים
 @userTypes_bp.route('/user_types', methods=['GET'])
 @safe_route
+@token_required(allowed_roles=["admin","manager"])
 def get_user_types():
     try:
         conn = get_db_connection()
@@ -96,6 +99,7 @@ def get_user_types():
 # עדכון סוג משתמש
 @userTypes_bp.route('/user_type/<int:id>', methods=['PUT'])
 @safe_route
+@token_required(allowed_roles=["admin","manager"])
 def update_user_type(id):
     try:
         data = request.get_json()
@@ -163,6 +167,7 @@ def update_user_type(id):
 # מחיקת סוג משתמש
 @userTypes_bp.route('/user_type/<int:id>', methods=['DELETE'])
 @safe_route
+@token_required(allowed_roles=["admin","manager"])
 def delete_user_type(id):
     try:
         conn = get_db_connection()
