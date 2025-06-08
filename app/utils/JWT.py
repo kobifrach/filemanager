@@ -7,7 +7,7 @@ def generate_token(user_id, user_type, role):
     now = datetime.datetime.utcnow()
     payload = {
         'user_id': user_id,
-        'user_type': user_type,
+        'username': user_type,
         'role': role,
         'iat': now,
         'exp': now + datetime.timedelta(hours=8),  # Token expires in 8 hours

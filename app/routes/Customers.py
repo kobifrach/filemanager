@@ -30,23 +30,37 @@ def generate_random_password(length=12):
 def create_customer():
     print("Creating a new customer...")
     try:
+        # Database connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+    except Exception as e:
+        current_app.logger.error(f"Database connection error: {str(e)}")  # Log database connection error
+        return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500 
+    try:
         data = request.get_json()
         first_name = data.get('first_name')
         last_name = data.get('last_name')
         email = data.get('email')
+        phone =  data.get('phone')
+        id_number = data.get('id_number')
+        if len(id_number) > 9:
+            id_number = id_number[:9]
 
         if not first_name or not last_name:
             return jsonify({"message": "שגיאה: יש להזין שם פרטי ושם משפחה."}), 400
         
         if not email or not validate_email(email):
             return jsonify({"message": "שגיאה: כתובת האימייל אינה תקינה."}), 400
+        
+        if not phone:
+            return jsonify({"message": "שגיאה: יש להזין מספר טלפון."}), 400
 
         customer_details = {
-            "id_number": data.get('id_number'),
+            "id_number": id_number,
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "phone": data.get('phone')
+            "phone": phone
         }
 
         raw_password = generate_random_password()
@@ -54,8 +68,8 @@ def create_customer():
         hashed_password = generate_password_hash(raw_password)
         print(f"Hashed password: {hashed_password}")
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+
+
     
         # Check for email uniqueness
         cursor.execute('SELECT COUNT(*) FROM Customers WHERE email = ?', (customer_details['email'],))
@@ -122,7 +136,10 @@ def create_customer():
         return jsonify({"message": f"שגיאה: {str(e)}"}), 500
 
     finally:
-        cursor.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # Delete customer and associated records
 @customers_bp.route('/customer/<int:customer_id>', methods=['DELETE'])
@@ -246,22 +263,38 @@ def get_customer_by_id(customer_id):
     finally:
         cursor.close()
 
-# Update customer details
+
 @customers_bp.route('/customer/<int:customer_id>', methods=['PUT'])
 @safe_route
-@token_required
+@token_required()  # שים לב לסוגריים הריקים
 def update_customer(customer_id):
+    print(f"Updating customer with ID {customer_id}...")
+    current_app.logger.info(f"Updating customer with ID {customer_id}...")
+    
+    # קבל את פרטי המשתמש הנוכחי מהדקורטור
+    current_user = request.user
+    current_user_id = current_user.get('id')
+    current_user_role = current_user.get('role')
+    
+    print(f"Current user: {current_user}")
+    print(f"Current user role: {current_user_role}, Current user ID: {current_user_id}")
+    
+    # בדוק הרשאות - לקוח יכול לערוך רק את עצמו
+    if current_user_role == 'customer' and int(current_user_id) != int(customer_id):
+        return jsonify({"message": "לא מורשה"}), 403
+    
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    current_user_id = request.user['id']
-    current_user_role = request.user['role']
-    if current_user_role=='customer' and current_user_id!=customer_id:
-        return jsonify({"message": "לא מורשה"}),403
-
-
+    
     try:
+        # קבל את הנתונים מה-JSON
         data = request.get_json()
+        print("Request data:", data)
+        
+        if not data:
+            return jsonify({"message": "לא נשלחו נתונים"}), 400
+
+        # בדוק אם אימייל כבר קיים
         new_email = data.get('email')
         new_id_number = data.get('id_number')
 
@@ -270,25 +303,57 @@ def update_customer(customer_id):
             if cursor.fetchone():
                 return jsonify({"message": "שגיאה: כתובת האימייל כבר קיימת במערכת."}), 400
 
-        if new_id_number:
+        # בדוק אם מספר תעודת זהות כבר קיים (רק אם נשלח ולא ריק)
+        if new_id_number and new_id_number.strip():
             cursor.execute('SELECT id FROM Customers WHERE id_number = ? AND id <> ?', (new_id_number, customer_id))
             if cursor.fetchone():
                 return jsonify({"message": "שגיאה: מספר תעודת הזהות כבר קיים במערכת."}), 400
 
+        # עדכן את הלקוח
         cursor.execute(''' 
             UPDATE Customers 
             SET id_number = ?, first_name = ?, last_name = ?, email = ?, phone = ? 
             WHERE id = ? 
-        ''', (new_id_number, data.get('first_name'), data.get('last_name'), new_email, data.get('phone'), customer_id))
+        ''', (
+            new_id_number if new_id_number and new_id_number.strip() else None, 
+            data.get('first_name'), 
+            data.get('last_name'), 
+            new_email, 
+            data.get('phone'), 
+            customer_id
+        ))
 
         conn.commit()
         current_app.logger.info(f"Customer ID {customer_id} updated successfully")
-        return jsonify({"message": "פרטי הלקוח עודכנו בהצלחה."}), 200
+        
+        # החזר את הנתונים המעודכנים
+        cursor.execute('SELECT * FROM Customers WHERE id = ?', (customer_id,))
+        updated_customer = cursor.fetchone()
+        
+        if updated_customer:
+            customer_dict = {
+                'id': updated_customer[0],
+                'id_number': updated_customer[1],
+                'first_name': updated_customer[2],
+                'last_name': updated_customer[3],
+                'email': updated_customer[4],
+                'phone': updated_customer[5]
+            }
+            return jsonify({
+                "message": "פרטי הלקוח עודכנו בהצלחה.",
+                "customer": customer_dict
+            }), 200
+        else:
+            return jsonify({"message": "פרטי הלקוח עודכנו בהצלחה."}), 200
 
     except Exception as e:
         conn.rollback()
         current_app.logger.error(f"Error updating customer ID {customer_id}: {str(e)}")
+        print(f"Exception occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"message": f"שגיאה: {str(e)}"}), 500
 
     finally:
         cursor.close()
+        conn.close()

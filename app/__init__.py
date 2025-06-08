@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from dotenv import load_dotenv
+from flask_cors import CORS  # ייבוא CORS
 from .routes.Customers import customers_bp
 from .routes.Customers_Files import customer_files_bp
 from .routes.Customers_Folders import customer_folders_bp
@@ -21,7 +22,13 @@ def create_app():
     # קונפיגורציית JWT או דברים רגישים
     app.config['SECRET_KEY'] = SECRET_KEY
 
-    
+    # הגדרת CORS לאפשר בקשות מ-http://localhost:5173 בלבד
+    # CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+    # CORS(app, supports_credentials=True, origins=["http://localhost:*"])
+    # CORS(app, supports_credentials=True, origins=["http://localhost:517/3"])
+   # CORS(app, supports_credentials=True, origins=lambda origin: True)#allowed all
+    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+    CORS(app, supports_credentials=True, origins=["http://localhost:5174"])
 
     app.register_blueprint(customers_bp)
     app.register_blueprint(customer_files_bp)

@@ -21,6 +21,9 @@ def get_user_by_username(username):
 
     cursor.execute(query, (username, username))
     row = cursor.fetchone()
+    print("row", row)  # Debugging line to check the retrieved row
+    if not row:
+        print(f"No user found with username: {username}")  # Debugging line if no user is found
     cursor.close()
     conn.close()
 
@@ -34,9 +37,10 @@ def get_user_by_username(username):
         'user_type': row[3],
         'role': row[4]
     }
+    print(f"Retrieved user: {user}")  # Debugging line to check the retrieved user
     return user
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/auth/login', methods=['POST'])
 def login():
     data = request.json
     username = data.get('username')
@@ -47,7 +51,16 @@ def login():
 
     user = get_user_by_username(username)
     if user and check_password_hash(user['password_hash'], password):
-        token = generate_token(user['id'], user['user_type'], user['role'])
-        return jsonify({'token': token})
+        # אם role ריק או None – נחזיר במקום זה את user_type
+        role_or_type = user['role'] if user['role'] else user['user_type']
+
+        token = generate_token(user['id'], user['username'], role_or_type)
+
+        return jsonify({
+            'token': token,
+            'userId': user['id'],
+            'username': user['username'],
+            'role': role_or_type
+        })
 
     return jsonify({'error': 'Invalid username or password'}), 401

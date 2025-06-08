@@ -6,6 +6,8 @@ def token_required(allowed_roles=None):
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
+            print("decorated")
+            # Get the authorization header from the request
             auth_header = request.headers.get('Authorization', None)
             if not auth_header:
                 abort(401, description="Authorization header missing")
@@ -23,7 +25,7 @@ def token_required(allowed_roles=None):
 
                 request.user = {
                     'id': payload.get('user_id'),
-                    'type': payload.get('user_type'),
+                    'email': payload.get('email'),
                     'role': user_role
                 }
             except Exception:

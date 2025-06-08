@@ -141,6 +141,7 @@ def get_users():
 @token_required(allowed_roles=["user","admin","manager"])
 
 def update_user(id):
+    print(f"Update user request received for ID: {id}")
     try:
         data = request.get_json()
 
