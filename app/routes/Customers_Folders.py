@@ -171,3 +171,40 @@ def add_folder_to_customer(customer_id):
     finally:
         cursor.close()
         conn.close()
+
+
+# Get all customer folders (from Customers_Folders)
+@customer_folders_bp.route('/customer-folders', methods=['GET'])
+@safe_route
+@token_required(allowed_roles=["user", "manager", "admin"])
+def get_all_customer_folders():
+    current_app.logger.info("Request to retrieve all customer folders")
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT cf.id AS customer_folder_id,
+                   cf.customer_id,
+                   c.first_name + ' ' + c.last_name AS customer_name,
+                   cf.folder_id,
+                   f.name AS folder_template_name,
+                   cf.Folder_Name AS customer_folder_name
+            FROM Customers_Folders cf
+            JOIN Customers c ON cf.customer_id = c.id
+            JOIN Folders f ON cf.folder_id = f.id
+        ''')
+        folders = dict_cursor(cursor)
+
+        if folders:
+            current_app.logger.info(f"Retrieved {len(folders)} customer folders")  # לוג הצלחה
+            return jsonify({"customer_folders": folders}), 200
+        else:
+            current_app.logger.warning("No customer folders found")  # לוג ריק
+            return jsonify({"message": "לא נמצאו תיקיות של לקוחות"}), 404
+    except Exception as e:
+        current_app.logger.error(f"Error retrieving customer folders: {str(e)}")  # לוג שגיאה
+        return jsonify({"message": "שגיאה בשרת, נסה שוב מאוחר יותר"}), 500
+    finally:
+        cursor.close()
+        conn.close()

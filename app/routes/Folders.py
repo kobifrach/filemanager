@@ -81,8 +81,8 @@ def create_folder():
 
 # Retrieve metadata and linked file IDs of a specific folder
 @folders_bp.route('/folder/<int:id>', methods=['GET'])
-@safe_route
-@token_required()
+# @safe_route
+# @token_required()
 def get_folder(id):
     try:
         folder = execute_db_query('''
@@ -106,6 +106,7 @@ def get_folder(id):
         return jsonify(folder_data), 200
 
     except Exception as e:
+        print(f"An error occurred while retrieving folder {id}: {str(e)}")
         current_app.logger.error(f"❌ Exception occurred: {str(e)}")
         return jsonify({"message": f"שגיאה: {str(e)}"}), 500
 
@@ -168,21 +169,28 @@ def delete_folder(id):
         return jsonify({"message": f"שגיאה: {str(e)}"}), 500
 
 
-# Retrieve the list of all generic folders (ID and name)
+# # Retrieve the list of all generic folders (ID and name)
 @folders_bp.route('/folders', methods=['GET'])
 @safe_route
 @token_required()
 def get_all_folders():
+    print("Retrieving all folders...")
+    conn = get_db_connection()
+    cursor = conn.cursor()
     try:
-        folders = [{"id": row[0], "name": row[1]} for row in execute_db_query('''
-            SELECT id, name FROM Folders
-        ''')]
-
+        print("Executing database query to fetch all folders...")
+        cursor.execute('SELECT id, name FROM Folders')
+        rows = cursor.fetchall()
+        folders = [{"id": row[0], "name": row[1]} for row in rows]
+        print(f"Found {len(folders)} folders.")
         return jsonify({"folders": folders}), 200
-
     except Exception as e:
+        print(f"An error occurred while retrieving folders: {str(e)}")
         current_app.logger.error(f"❌ Exception occurred: {str(e)}")
         return jsonify({"message": f"שגיאה: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # Retrieve all unique files linked to the given folder IDs

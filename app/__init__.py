@@ -22,13 +22,9 @@ def create_app():
     # קונפיגורציית JWT או דברים רגישים
     app.config['SECRET_KEY'] = SECRET_KEY
 
-    # הגדרת CORS לאפשר בקשות מ-http://localhost:5173 בלבד
-    # CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
-    # CORS(app, supports_credentials=True, origins=["http://localhost:*"])
-    # CORS(app, supports_credentials=True, origins=["http://localhost:517/3"])
-   # CORS(app, supports_credentials=True, origins=lambda origin: True)#allowed all
-    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
-    CORS(app, supports_credentials=True, origins=["http://localhost:5174"])
+    # CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+    # CORS(app, supports_credentials=True, origins=["http://localhost:5174"])
+    CORS(app)
 
     app.register_blueprint(customers_bp)
     app.register_blueprint(customer_files_bp)

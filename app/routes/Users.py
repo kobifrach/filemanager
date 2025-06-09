@@ -28,7 +28,7 @@ def create_user():
         last_name = data['last_name']
         email = data['email']
         phone = data['phone']
-        role = data.get('role', 'User')
+        role = data.get('role', 'user')
 
         # יצירת סיסמה אקראית והצפנתה
         raw_password = generate_random_password()
@@ -115,7 +115,7 @@ def get_user(id):
 
 
 # Fetch all users
-@users_bp.route('/api/users', methods=['GET'])
+@users_bp.route('/users', methods=['GET'])
 @safe_route
 @token_required(allowed_roles=["admin","manager"])
 def get_users():

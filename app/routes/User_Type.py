@@ -76,9 +76,9 @@ def create_user_type():
 
 
 # קריאה של כל סוגי המשתמשים
-@userTypes_bp.route('/user_types', methods=['GET'])
+@userTypes_bp.route('/user-types', methods=['GET'])
 @safe_route
-@token_required(allowed_roles=["admin","manager"])
+# @token_required(allowed_roles=["admin","manager"])
 def get_user_types():
     try:
         conn = get_db_connection()
