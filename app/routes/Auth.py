@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash
 from ..utils.JWT import generate_token
 from ..database.database import get_db_connection
+from ..utils.decorators import safe_route
+from ..utils.jwt_decorator import token_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -64,3 +66,13 @@ def login():
         })
 
     return jsonify({'error': 'Invalid username or password'}), 401
+
+
+#reset password endpoint
+@auth_bp.route('/auth/reset-password/<int:id>', methods=['POST'])
+@safe_route
+@token_required(allowed_roles=["user","admin","manager"])
+def reset_password(id):
+    return jsonify({"message": "Reset password functionality not implemented yet"}), 200
+
+  

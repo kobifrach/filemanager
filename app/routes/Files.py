@@ -3,6 +3,7 @@ from ..database.database import get_db_connection
 import os
 from ..utils.decorators import safe_route
 from ..utils.jwt_decorator import token_required
+from werkzeug.utils import secure_filename
 
 files_bp = Blueprint('files', __name__)  # Blueprint for file management
 
@@ -160,3 +161,34 @@ def delete_file(id):
     finally:
         cursor.close()
         conn.close()
+
+
+# הגדר את סוגי הקבצים המותרים
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'jpg', 'png', 'txt'}
+
+# פונקציה לבדוק אם הסיומת מותרת
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# נתיב להעלאת קובץ
+@files_bp.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"message": "לא נשלח קובץ"}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({"message": "לא נבחר קובץ"}), 400
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        upload_folder = os.path.join(current_app.root_path, 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)  # יצירת התיקייה אם לא קיימת
+
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+
+        return jsonify({"message": "קובץ הועלה בהצלחה", "filename": filename}), 200
+
+    return jsonify({"message": "סוג קובץ לא נתמך"}), 400

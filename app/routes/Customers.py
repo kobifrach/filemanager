@@ -182,6 +182,7 @@ def delete_customer(customer_id):
 @safe_route
 @token_required(allowed_roles=["user","manager","admin"])
 def get_all_customers():
+    print("Retrieving all customers...")
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -263,7 +264,7 @@ def get_customer_by_id(customer_id):
     finally:
         cursor.close()
 
-
+# Update customer details by ID
 @customers_bp.route('/customer/<int:customer_id>', methods=['PUT'])
 @safe_route
 @token_required()  # שים לב לסוגריים הריקים

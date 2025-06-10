@@ -17,7 +17,7 @@ def generate_random_password(length=12):
 
 
 # Create a new user
-@users_bp.route('/api/user', methods=['POST'])
+@users_bp.route('/user', methods=['POST'])
 @safe_route
 @token_required(allowed_roles=["admin","manager"])
 def create_user():
@@ -172,7 +172,7 @@ def update_user(id):
 
 
 # Delete a user
-@users_bp.route('/api/user/<int:id>', methods=['DELETE'])
+@users_bp.route('/user/<int:id>', methods=['DELETE'])
 @safe_route
 @token_required(allowed_roles=["user","admin","manager"])
 
@@ -190,3 +190,7 @@ def delete_user(id):
         current_app.logger.error(f"Error deleting user with ID {id}: {str(e)}")
         current_app.logger.error(traceback.format_exc())
         return jsonify({"message": "Error deleting user."}), 500
+    
+
+
+  
