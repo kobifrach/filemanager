@@ -10,121 +10,124 @@ def dict_cursor(cursor):
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-# @customer_files_bp.route('/customer/<int:customer_id>/files', methods=['GET'])
-# @safe_route
-# @token_required()  
-# def get_customer_files(customer_id):
-#     current_app.logger.info(f"Request to retrieve files for customer ID {customer_id}")  
-#     print(f"Received request to retrieve files for customer ID {customer_id}")
-#     print(request)
-#     print("data:", request.data)
-#     # קבל את מזהה המשתמש מהבקשה
-#     user_id = request.user['id']  # מזהה המשתמש מה-payload
-#     user_role = request.user['role']  # תפקיד המשתמש מה-payload
 
-#     conn = get_db_connection()
-#     cursor = conn.cursor()
-#     try:
-#         # בדוק אם הלקוח קיים
-#         cursor.execute('SELECT 1 FROM Customers WHERE id = ?', (customer_id,))
-#         customer_exists = cursor.fetchone()
-
-#         if not customer_exists:
-#             current_app.logger.warning(f"customer with ID {customer_id} does not exist")  
-#             return jsonify({"message": f"שגיאה: לקוח עם מזהה {customer_id} לא קיים."}), 404
-
-#         # אם המשתמש הוא לקוח, בדוק אם הוא מנסה לגשת ללקוח שלו בלבד
-#         if user_role == 'customer' and user_id != customer_id:
-#             return jsonify({"message": "אין לך הרשאה לגשת לקבצים של לקוח אחר."}), 403
-
-#         # # Execute the query to fetch files
-#         # cursor.execute(''' 
-#         #     SELECT f.id AS file_id, f.name, f.file_type, f.File_URL AS file_url
-#         #     FROM Customers_Folders cf
-#         #     JOIN Folders_Files ff ON cf.folder_id = ff.folder_id
-#         #     JOIN Files f ON ff.file_id = f.id
-#         #     WHERE cf.customer_id = ?
-#         # ''', (customer_id,))
-#         cursor.execute(''' SELECT 
-#             cf_files.id,                           -- מזהה ייחודי של קובץ הלקוח
-#             cf_files.original_file_id,             -- מאיזה קובץ מערכת הוא נוצר
-#             cf_files.Customer_File_Name AS name,   -- שם הקובץ אצל הלקוח
-#             cf_files.file_type,                    -- סוג קובץ
-#             cf_files.file_path AS file_url,        -- הנתיב לקובץ
-#             folders.folder_name AS folder_name     -- (רשות) שם התיקייה
-#             FROM Customer_Files cf_files
-#             JOIN Customers_Folders cf ON cf_files.folder_id = cf.folder_id
-#             LEFT JOIN Folders folders ON cf.folder_id = folders.id
-#             WHERE cf.customer_id = ?
-#         ''', (customer_id,))
-
-#         files = dict_cursor(cursor)
-
-#         if files:
-#             current_app.logger.info(f"Found {len(files)} files for customer ID {customer_id}")  
-#             return jsonify({"files": files}), 200
-#         else:
-#             current_app.logger.warning(f"No files found for customer ID {customer_id}")  
-#             return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 404
-#     except Exception as e:
-#         current_app.logger.error(f"Error retrieving files for customer ID {customer_id}: {str(e)}")  
-#         return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500
-#     finally:
-#         cursor.close()
-#         conn.close()
-
+# Retrieve files for a specific customer
 @customer_files_bp.route('/customer/<int:customer_id>/files', methods=['GET'])
 @safe_route
-@token_required()  
+@token_required()
 def get_customer_files(customer_id):
-    current_app.logger.info(f"Request to retrieve files for customer ID {customer_id}")  
-    
-    # Get user ID and role from request
+    current_app.logger.info(f"בקשה לקבלת קבצים עבור לקוח ID {customer_id}")
+    print(f"Received request to retrieve files for customer ID {customer_id}")
+
+    user_id = request.user['id']
+    user_role = request.user['role']
+    print(f"User ID: {user_id}, User Role: {user_role}")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # בדיקה אם הלקוח קיים
+        cursor.execute('SELECT 1 FROM Customers WHERE id = ?', (customer_id,))
+        if not cursor.fetchone():
+            current_app.logger.warning(f"לקוח עם מזהה {customer_id} לא קיים")
+            return jsonify({"message": f"שגיאה: לקוח עם מזהה {customer_id} לא קיים."}), 404
+
+        # בדיקת הרשאה אם המשתמש הוא לקוח ורוצה לגשת ללקוח אחר
+        if user_role == 'customer' and user_id != customer_id:
+            print(f"User {user_id} with role {user_role} tried to access files of customer {customer_id}")
+            return jsonify({"message": "אין לך הרשאה לגשת לקבצים של לקוח אחר."}), 403
+        print(f"User {user_id} has permission to access files of customer {customer_id}")
+
+        # שליפת הקבצים של הלקוח מכל התיקיות
+        cursor.execute('''
+            SELECT 
+                cf_files.id,                     -- מזהה קובץ
+                cf_files.original_file_id,       -- הפניה לקובץ המקורי
+                cf_files.customer_file_name,     -- שם הקובץ אצל הלקוח
+                cf_files.file_type,              -- סוג הקובץ
+                cf_files.file_path,              -- נתיב
+                cf_folders.folder_name           -- שם תיקייה
+            FROM Customers_Files cf_files
+            JOIN Customers_Folders cf_folders ON cf_files.folder_id = cf_folders.id
+            WHERE cf_folders.customer_id = ?
+        ''', (customer_id,))
+        
+        files = dict_cursor(cursor)
+        print(f"Retrieved {len(files)} files for customer ID {customer_id}")
+
+        if files:
+            current_app.logger.info(f"נמצאו {len(files)} קבצים עבור לקוח {customer_id}")
+            return jsonify({"files": files}), 200
+        else:
+            current_app.logger.info(f"לא נמצאו קבצים עבור לקוח {customer_id}")
+            return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 404
+
+    except Exception as e:
+        current_app.logger.error(f"שגיאה בשליפת קבצים ללקוח {customer_id}: {str(e)}")
+        return jsonify({"message": "שגיאה בשרת. נסה שוב מאוחר יותר."}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+# Retrieve files for a specific customer within a specific folder
+@customer_files_bp.route('/customer/<int:customer_id>/folder/<int:folder_id>/files', methods=['GET'])
+@safe_route
+@token_required()
+def get_customer_files_by_folder(customer_id, folder_id):
+    current_app.logger.info(f"בקשה לקבצים עבור לקוח {customer_id} מתוך תיקייה {folder_id}")
+
     user_id = request.user['id']
     user_role = request.user['role']
 
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Check if customer exists
-        cursor.execute('SELECT 1 FROM customer WHERE id = ?', (customer_id,))
-        customer_exists = cursor.fetchone()
-
-        if not customer_exists:
-            current_app.logger.warning(f"Customer with ID {customer_id} does not exist")  
+        # בדיקה אם הלקוח קיים
+        cursor.execute('SELECT 1 FROM Customers WHERE id = ?', (customer_id,))
+        if not cursor.fetchone():
             return jsonify({"message": f"שגיאה: לקוח עם מזהה {customer_id} לא קיים."}), 404
 
-        # If user is a customer, check if they can only access their own files
+        # בדיקת הרשאה
         if user_role == 'customer' and user_id != customer_id:
             return jsonify({"message": "אין לך הרשאה לגשת לקבצים של לקוח אחר."}), 403
 
-        # CORRECTED: Query the customer files table with correct column names
-        cursor.execute(''' 
+        # בדיקה אם התיקייה שייכת ללקוח
+        #זה רק בדיקת אבטחה, כי אם התיקייה לא קיימת או לא שייכת ללקוח, לא יהיו קבצים
+        cursor.execute('''
+            SELECT 1 FROM Customers_Folders 
+            WHERE id = ? AND customer_id = ?
+        ''', (folder_id, customer_id))
+        if not cursor.fetchone():
+            return jsonify({"message": "התיקייה לא קיימת או לא שייכת ללקוח."}), 404
+        print(f"Folder {folder_id} exists and belongs to customer {customer_id}")
+
+        # שליפת קבצים מתוך התיקייה
+        cursor.execute('''
             SELECT 
-                cf_files.id,                                    -- Main database ID for deletion
-                cf_files.original_file_id,                      -- Reference to original file
-                cf_files.customer_file_name,                    -- Customer's file name
-                cf_files.file_type,                             -- File type
-                cf_files.file_path,                             -- Customer file path
-                cf_folders.folder_name                          -- Folder name
-            FROM customer_files cf_files
-            JOIN customer_folder cf_folders ON cf_files.folder_id = cf_folders.id
-            WHERE cf_folders.customer_id = ?
-            ORDER BY cf_files._created_at DESC
-        ''', (customer_id,))
+                cf_files.id,
+                cf_files.original_file_id,
+                cf_files.customer_file_name,
+                cf_files.file_type,
+                cf_files.file_path,
+                cf_folders.folder_name
+            FROM Customers_Files cf_files
+            JOIN Customers_Folders cf_folders ON cf_files.folder_id = cf_folders.id
+            WHERE cf_folders.customer_id = ? AND cf_folders.id = ?
+            
+        ''', (customer_id, folder_id))
 
         files = dict_cursor(cursor)
 
         if files:
-            current_app.logger.info(f"Found {len(files)} customer files for customer ID {customer_id}")  
             return jsonify({"files": files}), 200
         else:
-            current_app.logger.warning(f"No customer files found for customer ID {customer_id}")  
-            return jsonify({"message": "לא נמצאו קבצים עבור הלקוח."}), 404
-            
+            return jsonify({"message": "לא נמצאו קבצים בתיקייה."}), 404
+
     except Exception as e:
-        current_app.logger.error(f"Error retrieving customer files for customer ID {customer_id}: {str(e)}")  
-        return jsonify({"message": "שגיאה בשרת. אנא נסה שוב מאוחר יותר."}), 500
+        current_app.logger.error(f"שגיאה בשליפת קבצים: {str(e)}")
+        return jsonify({"message": "שגיאה בשרת."}), 500
+
     finally:
         cursor.close()
         conn.close()
